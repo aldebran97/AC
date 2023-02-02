@@ -10,15 +10,20 @@ import java.util.Arrays;
  */
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         TrieTree trieTree = new TrieTree();
-        trieTree.addWords(Arrays.asList("12348", "233", "23", "38"));
-//        trieTree.traverse(str -> System.out.println(str));
+        trieTree.addWords(Arrays.asList("12348", "2344", "38"));
         trieTree.update();
 
-        System.out.println(trieTree.queryWord("23"));
-        System.out.println(trieTree.queryWord("233"));
-        System.out.println(trieTree.queryWord("38"));
+        trieTree.traverse_(str -> System.out.println(str));
+
+        System.out.println(trieTree.containsWord("12348"));
+        System.out.println(trieTree.containsWord("2344"));
+        System.out.println(trieTree.containsWord("23"));
+        System.out.println(trieTree.containsWord("38"));
         System.out.println(trieTree.toWordsList());
+
+
+        System.out.println(trieTree.indexOf("12343382344038"));
     }
 }
