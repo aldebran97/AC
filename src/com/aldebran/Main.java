@@ -11,7 +11,11 @@ import java.util.Arrays;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        TrieTree trieTree = new TrieTree();
+        simpleTest();
+    }
+
+    static void simpleTest() {
+        TrieTreePlus trieTree = new TrieTreePlus();
         trieTree.addWords(Arrays.asList("12348", "2344", "38"));
         trieTree.update();
 
@@ -24,6 +28,6 @@ public class Main {
         System.out.println(trieTree.toWordsList());
 
 
-        System.out.println(trieTree.indexOf("12343382344038"));
+        System.out.println(trieTree.indexOf("0012343382344038"));
     }
 }
