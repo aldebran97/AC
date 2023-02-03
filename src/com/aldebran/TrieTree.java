@@ -48,6 +48,11 @@ public class TrieTree {
         public String word;
         public int index;
 
+        public MatchResult(String word, int index) {
+            this.word = word;
+            this.index = index;
+        }
+
         @Override
         public String toString() {
             return "MatchResult{" +
@@ -55,6 +60,15 @@ public class TrieTree {
                     ", index=" + index +
                     '}';
         }
+    }
+
+    private static String getWord(TrieTreeNode node, TrieTreeNode root) {
+        StringBuilder sb = new StringBuilder();
+        while (node != root) {
+            sb.append(node.charContent);
+            node = node.parent;
+        }
+        return sb.reverse().toString();
     }
 
     public TrieTreeNode root = new TrieTreeNode("", new ArrayList<>(), null, null);
@@ -119,15 +133,7 @@ public class TrieTree {
     // 特里树转词
     public void toWords(WordWriter wordWriter) {
         traverse_(node -> {
-                    if (node.isWordEnd) {
-                        StringBuilder sb = new StringBuilder();
-                        while (node != root) {
-                            sb.append(node.charContent);
-                            node = node.parent;
-                        }
-                        sb = sb.reverse();
-                        wordWriter.write(sb.toString());
-                    }
+                    if (node.isWordEnd) wordWriter.write(getWord(node, root));
                 }
         );
     }
@@ -204,17 +210,8 @@ public class TrieTree {
             }
 
             if (current.isWordEnd) {
-                StringBuilder sb = new StringBuilder();
-                TrieTreeNode node = current;
-                while (node != root) {
-                    sb.append(node.charContent);
-                    node = node.parent;
-                }
-                sb = sb.reverse();
-                MatchResult matchResult = new MatchResult();
-                matchResult.word = sb.toString();
-                matchResult.index = p - sb.length();
-                results.add(matchResult);
+                String word = getWord(current, root);
+                results.add(new MatchResult(word, p - word.length()));
             }
         }
 
