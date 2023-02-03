@@ -1,2 +1,3 @@
-# TrieTree
-单词查找树
+# AC自动机
+
+AC = TrieTree + KMP

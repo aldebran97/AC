@@ -4,24 +4,25 @@ import java.util.*;
 import java.util.function.Consumer;
 
 /**
- * 词语查找树
- *
- * @author aldebran
- * @since 2023-01-30
+ * AC自动机
+ * <p>
+ * * @author aldebran
+ * * @since 2023-01-30
  */
-public class TrieTree {
+public class AC {
 
-    // 词语查找树结点定义
-    public static class TrieTreeNode {
+    // AC自动机结点定义
+    public static class ACNode {
         public String charContent; // 字符内容，之所以不用char，因为考虑了特殊字符，两字节无法表示的情况
-        public List<TrieTreeNode> children; // 子结点
-        public TrieTreeNode mismatchPointer; // 失配结点
-        public TrieTreeNode parent; // 父结点
-        public boolean isWordEnd; // 是否可作为词尾，用于处理包含关系
+        public List<ACNode> children; // 子结点
+        public ACNode mismatchPointer; // 失配结点
+        public ACNode parent; // 父结点
+        public String word; // 是否可作为词尾，用于处理包含关系
 
-        public Map<String, TrieTreeNode> childContentChildMap = new HashMap<>(); // value不用index
 
-        public TrieTreeNode(String charContent, List<TrieTreeNode> children, TrieTreeNode mismatchPointer, TrieTreeNode parent) {
+        public Map<String, ACNode> childContentChildMap = new HashMap<>(); // value不用index
+
+        public ACNode(String charContent, List<ACNode> children, ACNode mismatchPointer, ACNode parent) {
             this.charContent = charContent;
             this.children = children;
             this.mismatchPointer = mismatchPointer;
@@ -30,11 +31,11 @@ public class TrieTree {
 
         @Override
         public String toString() {
-            return "TrieTreeNode{" +
+            return "ACNode{" +
                     "charContent='" + charContent + '\'' +
                     ", parent=" + (parent == null ? "null" : parent.charContent) +
                     ", mismatchPointer=" + (mismatchPointer == null ? "null" : mismatchPointer.charContent) +
-                    ", isWordEnd=" + isWordEnd +
+                    ", word=" + word +
                     '}';
         }
     }
@@ -54,6 +55,19 @@ public class TrieTree {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MatchResult that = (MatchResult) o;
+            return index == that.index && Objects.equals(word, that.word);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(word, index);
+        }
+
+        @Override
         public String toString() {
             return "MatchResult{" +
                     "word='" + word + '\'' +
@@ -62,49 +76,39 @@ public class TrieTree {
         }
     }
 
-    private static String getWord(TrieTreeNode node, TrieTreeNode root) {
-        StringBuilder sb = new StringBuilder();
-        while (node != root) {
-            sb.append(node.charContent);
-            node = node.parent;
-        }
-        return sb.reverse().toString();
-    }
-
-    public TrieTreeNode root = new TrieTreeNode("", new ArrayList<>(), null, null);
+    public ACNode root = new ACNode("", new ArrayList<>(), null, null);
 
     // 添加词
     public void addWords(List<String> words) {
         for (int i = 0; i < words.size(); i++) {
             String word = words.get(i);
-            TrieTreeNode current = root;
+            ACNode current = root;
             for (int j = 0; j < word.length(); j++) {
                 String charContent = word.substring(j, j + 1);
-                TrieTreeNode find = null;
+                ACNode find = null;
                 // 字查找可转换为二分插入、查找或者其他带有索引的方法
                 find = current.childContentChildMap.get(charContent);
 
                 if (find == null) {
-                    find = new TrieTreeNode(charContent, new ArrayList<>(), null, current);
+                    find = new ACNode(charContent, new ArrayList<>(), null, current);
                     current.children.add(find);
                     current.childContentChildMap.put(charContent, find);
                 }
                 current = find;
-                if (j == word.length() - 1) current.isWordEnd = true;
+                if (j == word.length() - 1) current.word = word;
             }
 
         }
     }
 
-
     // 遍历
-    public void traverse_(Consumer<TrieTreeNode> pVisit) {
-        Queue<TrieTreeNode> queue = new LinkedList<>();
+    public void traverse_(Consumer<ACNode> pVisit) {
+        Queue<ACNode> queue = new LinkedList<>();
         queue.add(root);
         while (!queue.isEmpty()) {
-            TrieTreeNode c = queue.remove();
+            ACNode c = queue.remove();
             pVisit.accept(c);
-            for (TrieTreeNode child : c.children) {
+            for (ACNode child : c.children) {
                 queue.add(child);
             }
         }
@@ -116,16 +120,23 @@ public class TrieTree {
 
     // 更新失配结点
     public void update() {
-        traverse_(trieTreeNode -> {
-            if (trieTreeNode != root && trieTreeNode.mismatchPointer == null) {
-                String first = trieTreeNode.charContent;
-                for (TrieTreeNode child : root.children) {
-                    if (child.charContent.equals(first) && child != trieTreeNode) {
-                        trieTreeNode.mismatchPointer = child;
-                        break;
+        traverse_(node -> {
+            if (node != root) {
+                if (node.parent == root) {
+                    node.mismatchPointer = root;
+                } else {
+                    ACNode find = node.parent.mismatchPointer.childContentChildMap.get(node.charContent);
+                    if (find != null) {
+                        node.mismatchPointer = find;
+                    } else {
+                        find = root.childContentChildMap.get(node.charContent);
+                        if (find != null) {
+                            node.mismatchPointer = find;
+                        } else {
+                            node.mismatchPointer = root;
+                        }
                     }
                 }
-
             }
         });
     }
@@ -133,7 +144,7 @@ public class TrieTree {
     // 特里树转词
     public void toWords(WordWriter wordWriter) {
         traverse_(node -> {
-                    if (node.isWordEnd) wordWriter.write(getWord(node, root));
+                    if (node.word != null) wordWriter.write(node.word);
                 }
         );
     }
@@ -148,10 +159,10 @@ public class TrieTree {
 
     // 是否包含词
     public boolean containsWord(String word) {
-        TrieTreeNode current = root;
+        ACNode current = root;
         for (int i = 0; i < word.length(); i++) {
             String charContent = word.substring(i, i + 1);
-            TrieTreeNode find = null;
+            ACNode find = null;
             // 字查找可转换为二分插入、查找或者其他带有索引的方法
             find = current.childContentChildMap.get(charContent);
 
@@ -164,19 +175,16 @@ public class TrieTree {
             }
 
         }
-        return current.isWordEnd;
+        return current.word != null;
     }
 
     public List<MatchResult> indexOf(String text) {
-
         List<MatchResult> results = new ArrayList<>();
-
         int p = 0;
-        TrieTreeNode current = root;
+        ACNode current = root;
         while (p < text.length()) {
             String charContent = text.substring(p, p + 1);
-//            System.out.printf("node: %s, p: %s, char: %s%n", current.charContent, p, charContent);
-            TrieTreeNode find = current.childContentChildMap.get(charContent);
+            ACNode find = current.childContentChildMap.get(charContent);
             if (find != null) {
                 current = find;
                 p++;
@@ -184,37 +192,13 @@ public class TrieTree {
                 if (current == root) {
                     p++;
                 } else {
-                    int move = 0;
-                    int max = -1;
-
-                    TrieTreeNode c1 = current;
-                    TrieTreeNode lastMismatchPointer = null;
-                    while (c1 != root) {
-                        if (c1.mismatchPointer != null) {
-                            lastMismatchPointer = c1.mismatchPointer;
-                            if (move > max) {
-                                max = move;
-                            }
-                        }
-                        c1 = c1.parent;
-                        move++;
-                    }
-//                    System.out.println("lastMismatchPointer" + " " + (lastMismatchPointer != null ? lastMismatchPointer.charContent : null));
-                    if (max == -1) {
-                        current = root;
-                    } else {
-                        p -= max;
-                        current = lastMismatchPointer;
-                    }
+                    current = current.mismatchPointer;
                 }
             }
+            if (find != null && find.word != null)
+                results.add(new MatchResult(current.word, p - current.word.length()));
 
-            if (current.isWordEnd) {
-                String word = getWord(current, root);
-                results.add(new MatchResult(word, p - word.length()));
-            }
         }
-
 
         return results;
     }
