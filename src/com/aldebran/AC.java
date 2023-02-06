@@ -4,10 +4,11 @@ import java.util.*;
 import java.util.function.Consumer;
 
 /**
- * AC自动机
- * <p>
- * * @author aldebran
- * * @since 2023-01-30
+ * AC自动机 = KMP + TrieTree
+ * 此类不处理包含词，处理包含词请看com.aldebran.ACPlus类
+ *
+ * @author aldebran
+ * @since 2023-01-30
  */
 public class AC {
 
@@ -178,6 +179,7 @@ public class AC {
         return current.word != null;
     }
 
+    // 正向匹配
     public List<MatchResult> indexOf(String text) {
         List<MatchResult> results = new ArrayList<>();
         int p = 0;
@@ -195,11 +197,15 @@ public class AC {
                     current = current.mismatchPointer;
                 }
             }
-            if (find != null && find.word != null)
-                results.add(new MatchResult(current.word, p - current.word.length()));
-
+            dealFind(results, find, p);
         }
 
         return results;
+    }
+
+    protected void dealFind(List<MatchResult> results, ACNode find, int p) {
+        if (find != null && find.word != null) {
+            results.add(new MatchResult(find.word, p - find.word.length()));
+        }
     }
 }

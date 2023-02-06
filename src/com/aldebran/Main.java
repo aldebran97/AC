@@ -11,7 +11,7 @@ import java.util.Arrays;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        simpleTest2();
+        simpleTest3();
     }
 
     static void simpleTest1() {
@@ -39,5 +39,19 @@ public class Main {
         trieTree.traverse_(str -> System.out.println(str));
 
         System.out.println(trieTree.indexOf("00ABCAABDABDABCD"));
+    }
+
+    static void simpleTest3() {
+        AC trieTree = new AC();
+        trieTree.addWords(Arrays.asList("ABCEAFBABCD", "EA", "FB", "F", "B"));
+        trieTree.update();
+
+        System.out.println(trieTree.indexOf("ABCEAFBABCQEA"));
+
+        trieTree = new ACPlus();
+        trieTree.addWords(Arrays.asList("ABCEAFBABCD", "EA", "FB", "F", "B"));
+        trieTree.update();
+
+        System.out.println(trieTree.indexOf("ABCEAFBABCQEA"));
     }
 }
