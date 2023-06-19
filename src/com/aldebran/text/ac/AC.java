@@ -1,5 +1,6 @@
-package com.aldebran;
+package com.aldebran.text.ac;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -10,10 +11,10 @@ import java.util.function.Consumer;
  * @author aldebran
  * @since 2023-01-30
  */
-public class AC {
+public class AC implements Serializable {
 
     // AC自动机结点定义
-    public static class ACNode {
+    public static class ACNode implements Serializable{
         public String charContent; // 字符内容，之所以不用char，因为考虑了特殊字符，两字节无法表示的情况
         public List<ACNode> children; // 子结点
         public ACNode mismatchPointer; // 失配结点

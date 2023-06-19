@@ -1,8 +1,9 @@
-package com.aldebran;
+package com.aldebran.text.similarity;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Text {
+public class Text implements Serializable {
 
     public String source;
 

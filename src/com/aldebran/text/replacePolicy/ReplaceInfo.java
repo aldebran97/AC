@@ -1,5 +1,6 @@
-package com.aldebran;
+package com.aldebran.text.replacePolicy;
 
+import java.io.Serializable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -9,7 +10,7 @@ import java.util.regex.Pattern;
  * @author aldebran
  * @since 2023-06-18
  */
-public class ReplaceInfo {
+public class ReplaceInfo implements Serializable {
 
     public String replacement; // 替代字符串
 

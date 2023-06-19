@@ -1,8 +1,11 @@
-package com.aldebran;
+package com.aldebran.text.similarity;
 
-import java.io.Serializable;
+import com.aldebran.text.ac.AC;
+import com.aldebran.text.replacePolicy.ReplaceInfo;
+import com.aldebran.text.replacePolicy.WordReplaceInfo;
+
+import java.io.*;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -59,16 +62,29 @@ public class TextSimilaritySearch implements Serializable {
 
     private Map<String, Text> idTextMap = new HashMap<>();
 
-    public int hitCount1_2; // 不同问题的(n,0.6)不同，检索和查重是不同的
+    // 不同问题的(criticalHitCount * avg_idf , criticalScore)不同，检索和查重是不同的
+    public int criticalHitCount = 3;
+
+    public double criticalScore = 0.5;
 
     public int n = 2;
 
+    public double decayRate = 0.3;
+
+    public double avgIdf = 0;
+
     public String libName;
 
-    public TextSimilaritySearch(String libName, int hitCount1_2, int n) {
+    public TextSimilaritySearch(String libName,
+                                int criticalHitCount,
+                                double criticalScore,
+                                int n,
+                                double decayRate) {
         this.libName = libName;
         this.n = n;
-        this.hitCount1_2 = hitCount1_2;
+        this.criticalHitCount = criticalHitCount;
+        this.criticalScore = criticalScore;
+        this.decayRate = decayRate;
     }
 
     public void addText(String text, String title, String id) {
@@ -91,6 +107,25 @@ public class TextSimilaritySearch implements Serializable {
 
     public void update() {
         ac.update();
+        avgIdf = getAvgIdf();
+    }
+
+
+    private double getAvgIdf() {
+        double sum = 0;
+        for (String gram : gramTextIdsMap.keySet()) {
+            double idf = idf(gram);
+//            System.out.printf("gram: %s, idf: %s%n", gram, idf);
+            sum += idf;
+        }
+        return sum / gramTextIdsMap.size();
+    }
+
+
+    public double idf(String gram) {
+        int n = gramTextIdsMap.get(gram).size();
+        int d = textsCount();
+        return Math.log((d + 1.0) / (n + 1));
     }
 
 
@@ -98,6 +133,9 @@ public class TextSimilaritySearch implements Serializable {
         return idTextMap.get(id);
     }
 
+    public int textsCount() {
+        return idTextMap.size();
+    }
 
     public static List<String> textToGramUnits(Text textObj) {
         String[] sp = textObj.result.split("B");
@@ -159,48 +197,124 @@ public class TextSimilaritySearch implements Serializable {
 
         List<AC.MatchResult> mrs = ac.indexOf(text);
         // 不记录重复计数
-        List<SimilaritySearchResult> result = new ArrayList<>();
+        Stack<SimilaritySearchResult> result = new Stack<>();
 
         Map<String, Integer> textIdCountMap = new HashMap<>();
+
+        Map<String, List<String>> textIdGramsMap = new HashMap<>();
+
+//        Set<String> grams = new HashSet<>();
+
         for (AC.MatchResult mr : mrs) {
             String gram = mr.word;
             Set<String> textIds = gramTextIdsMap.get(gram);
             for (String textId : textIds) {
-                Integer count = textIdCountMap.get(textId);
+                List<String> grams = textIdGramsMap.get(textId);
+                if (grams == null) {
+                    grams = new ArrayList<>();
+                    textIdGramsMap.put(textId, grams);
+                }
+                grams.add(gram);
+            }
+
+        }
+
+        PriorityQueue<SimilaritySearchResult> priorityQueue = new PriorityQueue<>(new Comparator<SimilaritySearchResult>() {
+            @Override
+            public int compare(SimilaritySearchResult o1, SimilaritySearchResult o2) {
+                return o1.score < o2.score ? -1 : 1;
+            }
+        });
+
+        Map<String, Double> gramIdfMap = new HashMap<>();
+
+        for (String textId : textIdGramsMap.keySet()) {
+            List<String> grams = textIdGramsMap.get(textId);
+            Map<String, Integer> gramCountMap = new HashMap<>();
+            Text textObj = queryById(textId);
+            for (String gram : grams) {
+                Integer count = gramCountMap.get(gram);
                 if (count == null) {
                     count = 0;
                 }
                 count++;
-                textIdCountMap.put(textId, count);
-            }
-        }
-
-
-        TreeSet<Map.Entry<String, Integer>> treeSet = new TreeSet(new Comparator<Map.Entry<String, Integer>>() {
-            @Override
-            public int compare(Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2) {
-                return o1.getValue() < o2.getValue() ? 1 : 0;
+                gramCountMap.put(gram, count);
             }
 
-        });
-
-        treeSet.addAll(textIdCountMap.entrySet());
-
-        for (Map.Entry<String, Integer> entry : treeSet) {
-            if (result.size() > topK) break;
-            Text textObj = queryById(entry.getKey());
-            int count = entry.getValue();
             SimilaritySearchResult similaritySearchResult = new SimilaritySearchResult();
             similaritySearchResult.id = textObj.id;
             similaritySearchResult.text = textObj.source;
             similaritySearchResult.title = textObj.title;
+            similaritySearchResult.score = 0;
 
-            // TODO calc score
-            similaritySearchResult.score = count;
-            result.add(similaritySearchResult);
+            for (String gram : gramCountMap.keySet()) {
+                Pattern pattern = Pattern.compile(gram);
+                Matcher matcher = pattern.matcher(textObj.result);
+                int count = gramCountMap.get(gram);
+                while (matcher.find()) {
+                    count++;
+                }
+
+                Double idf = gramIdfMap.get(gram);
+                if (idf == null) {
+                    idf = idf(gram);
+                    gramIdfMap.put(gram, idf);
+                }
+
+                if (idf < avgIdf) {
+                    idf *= decayRate;
+                }
+
+                similaritySearchResult.score += count / 2.0 * idf;
+            }
+
+            similaritySearchResult.score = score(similaritySearchResult.score);
+
+            if (priorityQueue.size() < topK) {
+                priorityQueue.add(similaritySearchResult);
+            } else {
+                if (priorityQueue.peek().score < similaritySearchResult.score) {
+                    priorityQueue.poll();
+                    priorityQueue.add(similaritySearchResult);
+                }
+            }
         }
 
+        result.addAll(priorityQueue);
 
-        return result;
+
+        List<SimilaritySearchResult> returnResult = new ArrayList<>();
+        while (!result.isEmpty()) {
+            returnResult.add(result.pop());
+        }
+
+        return returnResult;
     }
+
+    private double score(double sum) {
+        double b = -1;
+        double a = (1.0 / (criticalScore - 1) - b) / (avgIdf * criticalHitCount);
+        return 1.0 / (a * sum + b) + 1;
+    }
+
+    public static File save(TextSimilaritySearch textLib, File outFile) throws IOException {
+        try (FileOutputStream fO = new FileOutputStream(outFile);
+             BufferedOutputStream bO = new BufferedOutputStream(fO);
+             ObjectOutputStream oO = new ObjectOutputStream(bO);
+        ) {
+            oO.writeObject(textLib);
+        }
+        return outFile;
+    }
+
+    public static TextSimilaritySearch load(File inFile) throws Exception {
+        try (
+                FileInputStream fileInputStream = new FileInputStream(inFile);
+                BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+                ObjectInputStream objectInputStream = new ObjectInputStream(bufferedInputStream);
+        ) {
+            return (TextSimilaritySearch) objectInputStream.readObject();
+        }
+    }
+
 }

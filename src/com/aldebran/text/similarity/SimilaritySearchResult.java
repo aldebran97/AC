@@ -1,4 +1,4 @@
-package com.aldebran;
+package com.aldebran.text.similarity;
 
 public class SimilaritySearchResult {
 

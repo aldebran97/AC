@@ -1,5 +1,12 @@
-package com.aldebran;
+package com.aldebran.text;
 
+import com.aldebran.text.ac.AC;
+import com.aldebran.text.ac.ACPlus;
+import com.aldebran.text.replacePolicy.ReplaceInfo;
+import com.aldebran.text.similarity.Text;
+import com.aldebran.text.similarity.TextSimilaritySearch;
+
+import java.io.File;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
@@ -12,7 +19,8 @@ import java.util.regex.Pattern;
 public class TempTest {
 
     public static void main(String[] args) throws Exception {
-        tryTextSimilaritySearch();
+//        tryTextSimilaritySearch();
+        trySave();
     }
 
     static void simpleTest1() {
@@ -84,7 +92,7 @@ public class TempTest {
 
     static void tryTextSimilaritySearch() {
 
-        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 3, 2);
+        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 3, 0.5, 2, 0.3);
 
         textSimilaritySearch.addText("伊凡一世 thumb|right|伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "", "1");
 
@@ -93,6 +101,29 @@ public class TempTest {
         System.out.println(textSimilaritySearch.queryById("1"));
 
         textSimilaritySearch.update();
+
+        System.out.println(textSimilaritySearch.avgIdf);
+
+        System.out.println(textSimilaritySearch.similaritySearch("伊凡一世词牌名", 10));
+    }
+
+    static void trySave() throws Exception {
+
+        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 3, 0.5, 2, 0.3);
+
+        textSimilaritySearch.addText("伊凡一世 thumb|right|伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "", "1");
+
+        textSimilaritySearch.addText("水调歌头 水调歌头，词牌名。亦称《花犯念奴》、《元会曲》。", "", "2");
+
+        textSimilaritySearch.update();
+
+        File outFile = TextSimilaritySearch.save(textSimilaritySearch, new File("./test-lib"));
+
+        System.out.println(outFile.getAbsolutePath());
+
+        textSimilaritySearch = TextSimilaritySearch.load(outFile);
+
+        System.out.println(textSimilaritySearch.queryById("1"));
 
         System.out.println(textSimilaritySearch.similaritySearch("伊凡一世词牌名", 10));
     }

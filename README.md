@@ -2,9 +2,9 @@
 
 AC = TrieTree + KMP
 
-（1）com.aldebran.AC 不支持包含词的AC自动机
+（1）ac.com.aldebran.AC 不支持包含词的AC自动机
 
-（2）com.aldebran.ACPlus 支持包含词的AC自动机
+（2）ac.com.aldebran.ACPlus 支持包含词的AC自动机
 
 # 用途
 
@@ -21,5 +21,16 @@ System.out.println(trieTree.indexOf("001word1002word0003word2"));
 
 （2）文本检索，相似检索
 
-用法
+插入查询用法
+```java
+TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 3, 0.5, 2, 0.3);
+textSimilaritySearch.addText("Good morning. Hello");
+textSimilaritySearch.addText("Good night. Hello");
+textSimilaritySearch.update();
+System.out.println(textSimilaritySearch.similaritySearch("Good afternoon. Bye", 10));
+```
 
+库的保存和加载
+```java
+
+```

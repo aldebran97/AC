@@ -1,4 +1,4 @@
-package com.aldebran;
+package com.aldebran.text.replacePolicy;
 
 import java.util.regex.Pattern;
 

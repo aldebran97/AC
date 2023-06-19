@@ -1,5 +1,6 @@
-package com.aldebran;
+package com.aldebran.text.ac;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -9,7 +10,7 @@ import java.util.List;
  * @author aldebran
  * @since 2023-01-30
  */
-public class ACPlus extends AC {
+public class ACPlus extends AC implements Serializable {
 
     @Override
     protected void dealFind(List<MatchResult> results, ACNode find, int p) {
