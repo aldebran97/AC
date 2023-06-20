@@ -195,15 +195,15 @@ public class TextSimilaritySearch implements Serializable {
 
     public List<SimilaritySearchResult> similaritySearch(String text, int topK) {
 
+        Text gText = TextSimilaritySearch.textProcess(text);
+
+        String gPString = String.join("", TextSimilaritySearch.textToGramUnits(gText));
+
         List<AC.MatchResult> mrs = ac.indexOf(text);
         // 不记录重复计数
-        Stack<SimilaritySearchResult> result = new Stack<>();
-
-        Map<String, Integer> textIdCountMap = new HashMap<>();
+        List<SimilaritySearchResult> result = new ArrayList<>();
 
         Map<String, List<String>> textIdGramsMap = new HashMap<>();
-
-//        Set<String> grams = new HashSet<>();
 
         for (AC.MatchResult mr : mrs) {
             String gram = mr.word;
@@ -222,11 +222,12 @@ public class TextSimilaritySearch implements Serializable {
         PriorityQueue<SimilaritySearchResult> priorityQueue = new PriorityQueue<>(new Comparator<SimilaritySearchResult>() {
             @Override
             public int compare(SimilaritySearchResult o1, SimilaritySearchResult o2) {
-                return o1.score < o2.score ? -1 : 1;
+                return Double.compare(o1.score, o2.score);
             }
         });
 
         Map<String, Double> gramIdfMap = new HashMap<>();
+
 
         for (String textId : textIdGramsMap.keySet()) {
             List<String> grams = textIdGramsMap.get(textId);
@@ -265,30 +266,63 @@ public class TextSimilaritySearch implements Serializable {
                     idf *= decayRate;
                 }
 
-                similaritySearchResult.score += count / 2.0 * idf;
+                double this_score = count / 2.0 * idf;
+
+                similaritySearchResult.score += this_score; // 基本文本内容
+
+            }
+
+            // 基于标题
+
+//            Text titleText = TextSimilaritySearch.textProcess(similaritySearchResult.title);
+//            List<String> titleGrams = TextSimilaritySearch.nGram(titleText, n);
+//            for (String titleGram : titleGrams) {
+//                if (gPString.contains(titleGram)) {
+//                    if (gramTextIdsMap.containsKey(titleGram)) {
+//
+//                        similaritySearchResult.score *= Math.pow(4, idf(titleGram) - thisAvgIdf);
+//                        System.out.printf("title: %s, titleGram: %s, mul: %s%n", textObj.title, titleGram, Math.pow(4, idf(titleGram) - avgIdf));
+//                    }
+//                }
+//            }
+
+            if (gPString.contains(textObj.title)) {
+
+                int num = 0;
+
+                Matcher matcher = Pattern.compile(textObj.title).matcher(gPString);
+                while (matcher.find()) num++;
+
+//                System.out.printf("id: %s, title: %s, score: %s%n", textObj.id, textObj.title, similaritySearchResult.score);
+
+                similaritySearchResult.score *= 10 * num;
+
+//                System.out.printf("id: %s, title: %s, score: %s%n", textObj.id, textObj.title, similaritySearchResult.score);
+
             }
 
             similaritySearchResult.score = score(similaritySearchResult.score);
 
+
             if (priorityQueue.size() < topK) {
                 priorityQueue.add(similaritySearchResult);
-            } else {
-                if (priorityQueue.peek().score < similaritySearchResult.score) {
-                    priorityQueue.poll();
-                    priorityQueue.add(similaritySearchResult);
-                }
+            } else if (priorityQueue.peek().score < similaritySearchResult.score) {
+                priorityQueue.poll();
+                priorityQueue.add(similaritySearchResult);
             }
         }
 
-        result.addAll(priorityQueue);
 
-
-        List<SimilaritySearchResult> returnResult = new ArrayList<>();
-        while (!result.isEmpty()) {
-            returnResult.add(result.pop());
+        while (!priorityQueue.isEmpty()) {
+            result.add(priorityQueue.poll());
         }
 
-        return returnResult;
+        List<SimilaritySearchResult> result2 = new ArrayList<>();
+        for (int i = result.size() - 1; i >= 0; i--) {
+            result2.add(result.get(i));
+        }
+
+        return result2;
     }
 
     private double score(double sum) {
