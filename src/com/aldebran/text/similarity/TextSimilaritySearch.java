@@ -277,6 +277,9 @@ public class TextSimilaritySearch implements Serializable {
             }
 
             // 基于标题
+            // TODO titleGram->CountMap
+            // TODO titleGram->hit list
+            // TODO AC自动机增加效率
             Text titleObj = textProcess(textObj.title);
             if (titleObj.result.length() >= n) {
                 List<String> titleGrams = nGram(titleObj, n);
