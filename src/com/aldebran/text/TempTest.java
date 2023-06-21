@@ -92,7 +92,7 @@ public class TempTest {
 
     static void tryTextSimilaritySearch() {
 
-        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 3, 0.5, 2, 0.3);
+        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 3, 0.5, 2, 0.01, 10);
 
         textSimilaritySearch.addText("伊凡一世 thumb|right|伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "", "1");
 
@@ -109,7 +109,7 @@ public class TempTest {
 
     static void trySave() throws Exception {
 
-        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 3, 0.5, 2, 0.3);
+        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 3, 0.5, 2, 0.01, 10);
 
         textSimilaritySearch.addText("伊凡一世 thumb|right|伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "", "1");
 

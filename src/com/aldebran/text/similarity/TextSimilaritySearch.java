@@ -69,7 +69,9 @@ public class TextSimilaritySearch implements Serializable {
 
     public int n = 2;
 
-    public double decayRate = 0.3;
+    public double decayRate = 0.01;
+
+    public double growthRate = 10;
 
     public double avgIdf = 0;
 
@@ -79,12 +81,14 @@ public class TextSimilaritySearch implements Serializable {
                                 int criticalHitCount,
                                 double criticalScore,
                                 int n,
-                                double decayRate) {
+                                double decayRate,
+                                double growthRate) {
         this.libName = libName;
         this.n = n;
         this.criticalHitCount = criticalHitCount;
         this.criticalScore = criticalScore;
         this.decayRate = decayRate;
+        this.growthRate = growthRate;
     }
 
     public void addText(String text, String title, String id) {
@@ -172,7 +176,7 @@ public class TextSimilaritySearch implements Serializable {
     public static List<String> nGram(Text textObj, int n) {
         List<String> gramUnits = textToGramUnits(textObj);
         List<String> result = new ArrayList<>();
-        for (int i = 0; i < gramUnits.size() - n; i++) {
+        for (int i = 0; i <= gramUnits.size() - n; i++) {
             String item = "";
             for (int j = 0; j < n; j++) {
                 item += gramUnits.get(i + j);
@@ -273,33 +277,48 @@ public class TextSimilaritySearch implements Serializable {
             }
 
             // 基于标题
+            Text titleObj = textProcess(textObj.title);
+            if (titleObj.result.length() >= n) {
+                List<String> titleGrams = nGram(titleObj, n);
 
-//            Text titleText = TextSimilaritySearch.textProcess(similaritySearchResult.title);
-//            List<String> titleGrams = TextSimilaritySearch.nGram(titleText, n);
-//            for (String titleGram : titleGrams) {
-//                if (gPString.contains(titleGram)) {
-//                    if (gramTextIdsMap.containsKey(titleGram)) {
-//
-//                        similaritySearchResult.score *= Math.pow(4, idf(titleGram) - thisAvgIdf);
-//                        System.out.printf("title: %s, titleGram: %s, mul: %s%n", textObj.title, titleGram, Math.pow(4, idf(titleGram) - avgIdf));
-//                    }
-//                }
-//            }
-
-            if (gPString.contains(textObj.title)) {
-
-                int num = 0;
-
-                Matcher matcher = Pattern.compile(textObj.title).matcher(gPString);
-                while (matcher.find()) num++;
-
-//                System.out.printf("id: %s, title: %s, score: %s%n", textObj.id, textObj.title, similaritySearchResult.score);
-
-                similaritySearchResult.score *= 10 * num;
-
-//                System.out.printf("id: %s, title: %s, score: %s%n", textObj.id, textObj.title, similaritySearchResult.score);
+                double this_idf = 0;
+                int totalTimes = 0;
+                for (String titleGram : titleGrams) {
+                    Double idf = gramIdfMap.get(titleGram);
+                    if (idf == null) {
+                        idf = idf(titleGram);
+                        gramIdfMap.put(titleGram, idf);
+                    }
+                    Matcher matcher = Pattern.compile(titleGram).matcher(gPString);
+                    int times = 0;
+                    while (matcher.find()) times++;
+                    if (times != 0) {
+                        idf *= times * growthRate;
+                    }
+                    this_idf += idf;
+                    totalTimes += times;
+                }
+                double this_avg_idf = this_idf / titleGrams.size();
+                similaritySearchResult.score += totalTimes * this_avg_idf;
+//                System.out.println("title: " + titleObj.result + " avg_idf: " + this_avg_idf + " count: " + totalTimes);
 
             }
+//            if (gPString.contains(textObj.title)) {
+//                Text titleObj = textProcess(textObj.title);
+//                if (titleObj.result.length() >= n) {
+//                    List<String> titleGrams = nGram(titleObj, n);
+//                    double this_idf = 0;
+//                    for (String titleGram : titleGrams) {
+//                        Double idf = gramIdfMap.get(titleGram);
+//                        if (idf == null) {
+//                            idf = idf(titleGram);
+//                            gramIdfMap.put(titleGram, idf);
+//                        }
+//                        this_idf += idf;
+//                    }
+//                    similaritySearchResult.score += growthRate * this_idf;
+//                }
+//            }
 
             similaritySearchResult.score = score(similaritySearchResult.score);
 
@@ -327,7 +346,8 @@ public class TextSimilaritySearch implements Serializable {
 
     private double score(double sum) {
         double b = -1;
-        double a = (1.0 / (criticalScore - 1) - b) / (avgIdf * criticalHitCount);
+        double a = (1.0 / (criticalScore - 1) - b) / (avgIdf * criticalHitCount +
+                criticalHitCount * 0.6 * (growthRate * avgIdf + avgIdf) / 2);
         return 1.0 / (a * sum + b) + 1;
     }
 
