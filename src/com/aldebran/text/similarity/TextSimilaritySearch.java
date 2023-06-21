@@ -89,6 +89,13 @@ public class TextSimilaritySearch implements Serializable {
                                 double growthRate) {
         this.libName = libName;
         this.n = n;
+        regenerateArgs(criticalHitCount, criticalScore, decayRate, growthRate);
+    }
+
+    public void regenerateArgs(int criticalHitCount,
+                               double criticalScore,
+                               double decayRate,
+                               double growthRate) {
         this.criticalHitCount = criticalHitCount;
         this.criticalScore = criticalScore;
         this.decayRate = decayRate;
@@ -97,6 +104,7 @@ public class TextSimilaritySearch implements Serializable {
         this.a = (1.0 / (criticalScore - 1) - b) / (avgIdf * criticalHitCount +
                 criticalHitCount * 0.7 * (growthRate * avgIdf + avgIdf) / 2);
     }
+
 
     public void addText(String text, String title, String id) {
         Text textObj = textProcess(text);
@@ -210,7 +218,7 @@ public class TextSimilaritySearch implements Serializable {
 
         String gPString = String.join("", TextSimilaritySearch.textToGramUnits(gText));
 
-        List<AC.MatchResult> mrs = ac.indexOf(text);
+        List<AC.MatchResult> mrs = ac.indexOf(gPString);
         // 不记录重复计数
         List<SimilaritySearchResult> result = new LinkedList<>();
 
@@ -391,6 +399,10 @@ public class TextSimilaritySearch implements Serializable {
 
     private double score(double sum) {
         return 1.0 / (a * sum + b) + 1;
+    }
+
+    public int wordsCount() {
+        return gramTextIdsMap.size();
     }
 
     public static File save(TextSimilaritySearch textLib, File outFile) throws IOException {
