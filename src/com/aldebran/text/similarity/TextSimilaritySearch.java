@@ -56,7 +56,7 @@ public class TextSimilaritySearch implements Serializable {
         // lots of
     }
 
-    private AC ac = new AC();
+    public AC ac = new AC();
 
     private Map<String, Set<String>> gramTextIdsMap = new HashMap<>();
 
@@ -71,11 +71,15 @@ public class TextSimilaritySearch implements Serializable {
 
     public double decayRate = 0.01;
 
-    public double growthRate = 10;
+    public double growthRate = 3;
 
     public double avgIdf = 0;
 
     public String libName;
+
+    public double a;
+
+    public double b;
 
     public TextSimilaritySearch(String libName,
                                 int criticalHitCount,
@@ -89,6 +93,9 @@ public class TextSimilaritySearch implements Serializable {
         this.criticalScore = criticalScore;
         this.decayRate = decayRate;
         this.growthRate = growthRate;
+        this.b = -1;
+        this.a = (1.0 / (criticalScore - 1) - b) / (avgIdf * criticalHitCount +
+                criticalHitCount * 0.7 * (growthRate * avgIdf + avgIdf) / 2);
     }
 
     public void addText(String text, String title, String id) {
@@ -205,7 +212,7 @@ public class TextSimilaritySearch implements Serializable {
 
         List<AC.MatchResult> mrs = ac.indexOf(text);
         // 不记录重复计数
-        List<SimilaritySearchResult> result = new ArrayList<>();
+        List<SimilaritySearchResult> result = new LinkedList<>();
 
         Map<String, List<String>> textIdGramsMap = new HashMap<>();
 
@@ -277,13 +284,69 @@ public class TextSimilaritySearch implements Serializable {
             }
 
             // 基于标题
-            // TODO titleGram->CountMap
-            // TODO titleGram->hit list
-            // TODO AC自动机增加效率
             Text titleObj = textProcess(textObj.title);
             if (titleObj.result.length() >= n) {
-                List<String> titleGrams = nGram(titleObj, n);
 
+                // start
+//                // gram标题中出现次数
+//                Map<String, Integer> titleGramTitleCountMap = new HashMap<>();
+//                // gram命中次数
+//                Map<String, Integer> titleGramHitCountMap = new HashMap<>();
+//
+//
+//                List<String> titleGrams = nGram(titleObj, n);
+//                AC titleAC = new AC();
+//
+//                for (String titleGram : titleGrams) {
+//                    Integer gramCount = titleGramTitleCountMap.get(titleGram);
+//                    if (gramCount == null) {
+//                        gramCount = 0;
+//                    }
+//                    gramCount++;
+//                    titleGramTitleCountMap.put(titleGram, gramCount);
+//
+//                }
+//
+//                titleAC.addWords(titleGrams);
+//
+//                titleAC.update();
+//
+//                for (AC.MatchResult matchResult : titleAC.indexOf(gPString)) {
+//                    String matchTitleGram = matchResult.word;
+//                    Integer hitCount = titleGramHitCountMap.get(matchTitleGram);
+//                    if (hitCount == null) {
+//                        hitCount = 0;
+//                    }
+//                    hitCount++;
+//                    titleGramHitCountMap.put(matchTitleGram, hitCount);
+//                }
+//
+//                double this_idf = 0;
+//                int matchTimes = 0;
+//
+//                for (String titleGram : titleGramTitleCountMap.keySet()) {
+//                    Double idf = gramIdfMap.get(titleGram);
+//                    if (idf == null) {
+//                        idf = idf(titleGram);
+//                        gramIdfMap.put(titleGram, idf);
+//                    }
+//                    if (titleGramHitCountMap.containsKey(titleGram)) {
+//                        idf *= growthRate;
+//                    }
+//                    this_idf += titleGramTitleCountMap.get(titleGram) * idf;
+//                }
+//                double this_avg_idf = this_idf / titleGrams.size(); // 加权平均值
+//
+//                for (String titleGram : titleGramHitCountMap.keySet()) {
+//                    Integer hitCount = titleGramHitCountMap.get(titleGram);
+//                    matchTimes += hitCount * titleGramTitleCountMap.get(titleGram);
+//                }
+//
+//                similaritySearchResult.score += matchTimes * this_avg_idf;
+                // end
+
+
+                List<String> titleGrams = nGram(titleObj, n);
                 double this_idf = 0;
                 int totalTimes = 0;
                 for (String titleGram : titleGrams) {
@@ -306,25 +369,9 @@ public class TextSimilaritySearch implements Serializable {
 //                System.out.println("title: " + titleObj.result + " avg_idf: " + this_avg_idf + " count: " + totalTimes);
 
             }
-//            if (gPString.contains(textObj.title)) {
-//                Text titleObj = textProcess(textObj.title);
-//                if (titleObj.result.length() >= n) {
-//                    List<String> titleGrams = nGram(titleObj, n);
-//                    double this_idf = 0;
-//                    for (String titleGram : titleGrams) {
-//                        Double idf = gramIdfMap.get(titleGram);
-//                        if (idf == null) {
-//                            idf = idf(titleGram);
-//                            gramIdfMap.put(titleGram, idf);
-//                        }
-//                        this_idf += idf;
-//                    }
-//                    similaritySearchResult.score += growthRate * this_idf;
-//                }
-//            }
+
 
             similaritySearchResult.score = score(similaritySearchResult.score);
-
 
             if (priorityQueue.size() < topK) {
                 priorityQueue.add(similaritySearchResult);
@@ -336,21 +383,13 @@ public class TextSimilaritySearch implements Serializable {
 
 
         while (!priorityQueue.isEmpty()) {
-            result.add(priorityQueue.poll());
+            result.add(0, priorityQueue.poll());
         }
 
-        List<SimilaritySearchResult> result2 = new ArrayList<>();
-        for (int i = result.size() - 1; i >= 0; i--) {
-            result2.add(result.get(i));
-        }
-
-        return result2;
+        return result;
     }
 
     private double score(double sum) {
-        double b = -1;
-        double a = (1.0 / (criticalScore - 1) - b) / (avgIdf * criticalHitCount +
-                criticalHitCount * 0.6 * (growthRate * avgIdf + avgIdf) / 2);
         return 1.0 / (a * sum + b) + 1;
     }
 
