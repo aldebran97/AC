@@ -1,6 +1,7 @@
 package com.aldebran.text.similarity;
 
 import java.io.Serializable;
+import java.util.Map;
 import java.util.Objects;
 
 public class Text implements Serializable {
@@ -15,6 +16,10 @@ public class Text implements Serializable {
 
     public double contentWeight = 0.5; // 内容权重
 
+    public int totalGramsCount;
+
+    public Map<String, Integer> gramCountMap;
+
     @Override
     public String toString() {
         return "Text{" +
@@ -22,7 +27,9 @@ public class Text implements Serializable {
                 ", result='" + result + '\'' +
                 ", id='" + id + '\'' +
                 ", title='" + title + '\'' +
-                ", outerWeight='" + contentWeight + '\'' +
+                ", contentWeight=" + contentWeight +
+                ", totalGramsCount=" + totalGramsCount +
+                ", gramCountMap=" + gramCountMap +
                 '}';
     }
 

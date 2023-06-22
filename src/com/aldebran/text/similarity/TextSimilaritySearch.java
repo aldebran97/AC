@@ -76,9 +76,11 @@ public class TextSimilaritySearch implements Serializable {
 
     public int n = 2;
 
-    public double decayRate = 0.01;
+    public double contentGrowRate = 5;
 
-    public double growthRate = 3;
+    public double titleGrowthRate = 5;
+
+    public double decayRate = 0.5;
 
     public double avgIdf = 0;
 
@@ -93,27 +95,32 @@ public class TextSimilaritySearch implements Serializable {
                                 double criticalTitleHitCountPerGram,
                                 double criticalScore,
                                 int n,
-                                double decayRate,
-                                double growthRate) {
+                                double contentGrowRate,
+                                double titleGrowRate,
+                                double decayRate) {
         this.libName = libName;
         this.n = n;
         regenerateArgs(criticalContentHitCountPerGram, criticalTitleHitCountPerGram,
-                criticalScore, decayRate, growthRate);
+                criticalScore, contentGrowRate, titleGrowRate, decayRate);
     }
 
     public void regenerateArgs(double criticalContentHitCountPerGram,
                                double criticalTitleHitCountPerGram,
                                double criticalScore,
-                               double decayRate,
-                               double growthRate) {
+                               double contentGrowRate,
+                               double titleGrowthRate,
+                               double decayRate) {
         this.criticalContentHitCountPerGram = criticalContentHitCountPerGram;
         this.criticalTitleHitCountPerGram = criticalTitleHitCountPerGram;
         this.criticalScore = criticalScore;
+        this.contentGrowRate = contentGrowRate;
+        this.titleGrowthRate = titleGrowthRate;
         this.decayRate = decayRate;
-        this.growthRate = growthRate;
         this.b = -1;
-        this.a = (1.0 / (criticalScore - 1) - b) / (avgIdf * criticalContentHitCountPerGram
-                + (avgIdf + avgIdf * growthRate) / 2 * criticalTitleHitCountPerGram);
+        this.a = (1.0 / (criticalScore - 1) - b) / (
+                ((0.8 * avgIdf + 0.2 * contentGrowRate * avgIdf) * criticalContentHitCountPerGram
+                        + (avgIdf + avgIdf * titleGrowthRate) / 2 * criticalTitleHitCountPerGram) / 2
+        );
     }
 
 
@@ -123,7 +130,14 @@ public class TextSimilaritySearch implements Serializable {
         textObj.title = title;
         textObj.contentWeight = weight;
         List<String> grams = nGram(textObj, n);
+        textObj.gramCountMap = new HashMap<>();
         for (String gram : grams) {
+            Integer c = textObj.gramCountMap.get(gram);
+            if (c == null) {
+                c = 0;
+            }
+            c++;
+            textObj.gramCountMap.put(gram, c);
             Set<String> set = gramTextIdsMap.get(gram);
             if (set == null) {
                 set = new HashSet<>();
@@ -131,6 +145,8 @@ public class TextSimilaritySearch implements Serializable {
             }
             set.add(id);
         }
+        textObj.totalGramsCount = grams.size();
+
         ac.addWords(grams);
 
         idTextMap.put(textObj.id, textObj);
@@ -142,8 +158,9 @@ public class TextSimilaritySearch implements Serializable {
         regenerateArgs(this.criticalContentHitCountPerGram,
                 this.criticalTitleHitCountPerGram,
                 this.criticalScore,
-                this.decayRate,
-                this.growthRate);
+                this.contentGrowRate,
+                this.titleGrowthRate,
+                this.decayRate);
     }
 
 
@@ -264,18 +281,17 @@ public class TextSimilaritySearch implements Serializable {
 
         Map<String, Double> gramIdfMap = new HashMap<>();
 
-
         for (String textId : textIdGramsMap.keySet()) {
-            List<String> grams = textIdGramsMap.get(textId);
-            Map<String, Integer> gramCountMap = new HashMap<>();
             Text textObj = queryById(textId);
-            for (String gram : grams) {
-                Integer count = gramCountMap.get(gram);
-                if (count == null) {
-                    count = 0;
+
+            Map<String, Integer> contentHitGramCountMap = new HashMap<>();
+            for (String contentHitGram : textIdGramsMap.get(textId)) {
+                Integer c = contentHitGramCountMap.get(contentHitGram);
+                if (c == null) {
+                    c = 0;
                 }
-                count++;
-                gramCountMap.put(gram, count);
+                c++;
+                contentHitGramCountMap.put(contentHitGram, c);
             }
 
             SimilaritySearchResult similaritySearchResult = new SimilaritySearchResult();
@@ -292,41 +308,41 @@ public class TextSimilaritySearch implements Serializable {
 
             // 基于内容
 
-            for (String gram : gramCountMap.keySet()) {
-                Pattern pattern = Pattern.compile(gram);
-                Matcher matcher = pattern.matcher(textObj.result);
+            for (String libContentGram : textObj.gramCountMap.keySet()) {
                 // 库文章gram命中数量
-                int libTextGramsCountPerGram = gramCountMap.get(gram);
-                int gTextGramsCountPerGram = 0;
-                while (matcher.find()) {
-                    gTextGramsCountPerGram++;
+                Integer gTextGramsCountPerGram = contentHitGramCountMap.get(libContentGram);
+                if (gTextGramsCountPerGram == null) {
+                    gTextGramsCountPerGram = 0;
                 }
+                int libContentGramsCount = textObj.gramCountMap.get(libContentGram);
 
-                Double idf = gramIdfMap.get(gram);
+                Double idf = gramIdfMap.get(libContentGram);
                 if (idf == null) {
-                    idf = idf(gram);
-                    gramIdfMap.put(gram, idf);
+                    idf = idf(libContentGram);
+                    gramIdfMap.put(libContentGram, idf);
                 }
 
                 if (idf < avgIdf) {
                     idf *= decayRate;
                 }
 
+                double this_score = 0;
+                if (gTextGramsCountPerGram == 0) {
+                    this_score = idf;
+                } else {
+//                    this_score = gTextGramsCountPerGram * idf;
+                    double log_a = 8;
+                    this_score = contentGrowRate * MMath.log(log_a, gTextGramsCountPerGram + log_a - 1) * idf;
+                }
 
-//                double this_score = libTextGramsCountPerGram * gTextGramsCountPerGram * idf;
-
-                double this_score = libTextGramsCountPerGram * MMath.log1_5(gTextGramsCountPerGram + 0.5) * idf;
-
-
-                contentIdfSum += this_score; // 基本文本内容
-
+                contentIdfSum += libContentGramsCount * this_score; // 基本文本内容
             }
 
-            contentAvgIdf = contentIdfSum / grams.size();
+            contentAvgIdf = contentIdfSum / textObj.totalGramsCount;
 
             contentScore = contentAvgIdf * contentWeightK(textObj.contentWeight);
 
-            // contentScore期望是1*1*avg_idf
+            // contentScore期望是 0.2*contentGrowRate*avg_idf + 0.8*avg_idf
 
             // 基于标题
             Text titleObj = textProcess(textObj.title);
@@ -347,17 +363,17 @@ public class TextSimilaritySearch implements Serializable {
                     int gTextGramsCountPerGram = 0;
                     while (matcher.find()) gTextGramsCountPerGram++;
                     if (gTextGramsCountPerGram != 0) {
-                        idf *= gTextGramsCountPerGram * growthRate;
+                        idf *= gTextGramsCountPerGram * titleGrowthRate;
                     }
                     titleGramsIdfSum += idf;
                 }
                 double titleGramsAvgIdf = titleGramsIdfSum / titleGrams.size();
                 titleScore = titleGramsAvgIdf;
-
-                // titleScore的期望值假设是 (avg_idf + avg_idf * 1 * growthRate) /2
             }
 
-            similaritySearchResult.score = contentScore + titleScore;
+            // titleScore的期望值假设是 (avg_idf + avg_idf * 1 * growthRate) /2
+
+            similaritySearchResult.score = (contentScore + titleScore) / 2;
 
             similaritySearchResult.score = score(similaritySearchResult.score);
 
