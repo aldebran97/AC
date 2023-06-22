@@ -13,6 +13,8 @@ public class Text implements Serializable {
 
     public String title;
 
+    public double contentWeight = 0.5; // 内容权重
+
     @Override
     public String toString() {
         return "Text{" +
@@ -20,6 +22,7 @@ public class Text implements Serializable {
                 ", result='" + result + '\'' +
                 ", id='" + id + '\'' +
                 ", title='" + title + '\'' +
+                ", outerWeight='" + contentWeight + '\'' +
                 '}';
     }
 

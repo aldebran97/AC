@@ -92,28 +92,30 @@ public class TempTest {
 
     static void tryTextSimilaritySearch() {
 
-        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 3, 0.5, 2, 0.01, 10);
+        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 1, 1, 0.5, 2, 0.1, 5);
 
-        textSimilaritySearch.addText("伊凡一世 thumb|right|伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "", "1");
+        textSimilaritySearch.addText("伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "伊凡一世", "1", 0.5);
 
-        textSimilaritySearch.addText("水调歌头 水调歌头，词牌名。亦称《花犯念奴》、《元会曲》。", "", "2");
+        textSimilaritySearch.addText("水调歌头 水调歌头，词牌名。亦称《花犯念奴》、《元会曲》。", "水调歌头", "2", 0.5);
 
         System.out.println(textSimilaritySearch.queryById("1"));
 
         textSimilaritySearch.update();
 
         System.out.println(textSimilaritySearch.avgIdf);
+        System.out.println("a: " + textSimilaritySearch.a);
+        System.out.println("b: " + textSimilaritySearch.b);
 
-        System.out.println(textSimilaritySearch.similaritySearch("伊凡一世词牌名", 10));
+        System.out.println(textSimilaritySearch.similaritySearch("伊凡二世 水调歌头", 10));
     }
 
     static void trySave() throws Exception {
 
-        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 3, 0.5, 2, 0.01, 10);
+        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 1, 1, 0.5, 2, 0.1, 5);
 
-        textSimilaritySearch.addText("伊凡一世 thumb|right|伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "", "1");
+        textSimilaritySearch.addText("伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "伊凡一世", "1", 0.5);
 
-        textSimilaritySearch.addText("水调歌头 水调歌头，词牌名。亦称《花犯念奴》、《元会曲》。", "", "2");
+        textSimilaritySearch.addText("水调歌头 水调歌头，词牌名。亦称《花犯念奴》、《元会曲》。", "水调歌头", "2", 0.5);
 
         textSimilaritySearch.update();
 
@@ -125,7 +127,7 @@ public class TempTest {
 
         System.out.println(textSimilaritySearch.queryById("1"));
 
-        System.out.println(textSimilaritySearch.similaritySearch("伊凡一世词牌名", 10));
+        System.out.println(textSimilaritySearch.similaritySearch("伊凡二世 水调歌头", 10));
     }
 
 }

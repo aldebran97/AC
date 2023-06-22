@@ -24,11 +24,15 @@ System.out.println(trieTree.indexOf("001word1002word0003word2"));
 插入查询用法
 
 ```java
-TextSimilaritySearch textSimilaritySearch=new TextSimilaritySearch("test",3,0.5,2,0.3);
-textSimilaritySearch.addText("Good morning. Hello");
-textSimilaritySearch.addText("Good night. Hello");
-textSimilaritySearch.update();
-System.out.println(textSimilaritySearch.similaritySearch("Good afternoon. Bye",10));
+// 构造
+TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 1, 1, 0.5, 2, 0.1, 5);
+
+// 插入文本
+textSimilaritySearch.addText("伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "伊凡一世", "1", 0.5);
+textSimilaritySearch.addText("水调歌头 水调歌头，词牌名。亦称《花犯念奴》、《元会曲》。", "水调歌头", "2", 0.5);
+
+// 相似查询
+System.out.println(textSimilaritySearch.similaritySearch("伊凡二世 水调歌头", 10));
 ```
 
 库的保存和加载
