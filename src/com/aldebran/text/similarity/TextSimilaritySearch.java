@@ -111,7 +111,9 @@ public class TextSimilaritySearch implements Serializable {
         this.criticalScore = criticalScore;
         this.decayRate = decayRate;
         this.growthRate = growthRate;
-        update();
+        this.b = -1;
+        this.a = (1.0 / (criticalScore - 1) - b) / (avgIdf * criticalContentHitCountPerGram
+                + (avgIdf + avgIdf * growthRate) / 2 * criticalTitleHitCountPerGram);
     }
 
 
@@ -137,9 +139,11 @@ public class TextSimilaritySearch implements Serializable {
     public void update() {
         ac.update();
         avgIdf = getAvgIdf();
-        this.b = -1;
-        this.a = (1.0 / (criticalScore - 1) - b) / (avgIdf * criticalContentHitCountPerGram
-                + (avgIdf + avgIdf * growthRate) / 2 * criticalTitleHitCountPerGram);
+        regenerateArgs(this.criticalContentHitCountPerGram,
+                this.criticalTitleHitCountPerGram,
+                this.criticalScore,
+                this.decayRate,
+                this.growthRate);
     }
 
 
