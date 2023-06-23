@@ -118,7 +118,7 @@ public class TextSimilaritySearch implements Serializable {
         this.decayRate = decayRate;
         this.b = -1;
         this.a = (1.0 / (criticalScore - 1) - b) / (
-                ((0.8 * avgIdf + 0.2 * contentGrowRate * avgIdf) * criticalContentHitCountPerGram
+                ((0.95 * avgIdf + 0.05 * contentGrowRate * avgIdf) * criticalContentHitCountPerGram
                         + (avgIdf + avgIdf * titleGrowthRate) / 2 * criticalTitleHitCountPerGram) / 2
         );
     }
@@ -331,7 +331,7 @@ public class TextSimilaritySearch implements Serializable {
                     this_score = idf;
                 } else {
 //                    this_score = gTextGramsCountPerGram * idf;
-                    double log_a = 8;
+                    double log_a = 10;
                     this_score = contentGrowRate * MMath.log(log_a, gTextGramsCountPerGram + log_a - 1) * idf;
                 }
 
@@ -342,12 +342,12 @@ public class TextSimilaritySearch implements Serializable {
 
             contentScore = contentAvgIdf * contentWeightK(textObj.contentWeight);
 
-            // contentScore期望是 0.2*contentGrowRate*avg_idf + 0.8*avg_idf
+            // contentScore期望是 0.1*contentGrowRate*avg_idf + 0.9*avg_idf
 
             // 基于标题
             Text titleObj = textProcess(textObj.title);
 
-            double titleScore = 0.0;
+            double titleScore = contentScore;
 
             if (titleObj.result.length() >= n) {
 
