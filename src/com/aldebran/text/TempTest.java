@@ -3,7 +3,8 @@ package com.aldebran.text;
 import com.aldebran.text.ac.AC;
 import com.aldebran.text.ac.ACPlus;
 import com.aldebran.text.replacePolicy.ReplaceInfo;
-import com.aldebran.text.similarity.Text;
+import com.aldebran.text.similarity.BasicText;
+import com.aldebran.text.similarity.TextProcessor;
 import com.aldebran.text.similarity.TextSimilaritySearch;
 
 import java.io.File;
@@ -19,8 +20,8 @@ import java.util.regex.Pattern;
 public class TempTest {
 
     public static void main(String[] args) throws Exception {
-//        tryTextSimilaritySearch();
-        trySave();
+        tryTextSimilaritySearch();
+//        trySave();
     }
 
     static void simpleTest1() {
@@ -76,23 +77,31 @@ public class TempTest {
     }
 
     static void textProcess5() {
-        System.out.println(TextSimilaritySearch.textProcess("《蝶恋花·答李淑一》" +
+        System.out.println(TextProcessor.textProcess("《蝶恋花·答李淑一》" +
                 "伊凡一世 thumb|right|伊凡一世 伊凡一世·丹尼洛维奇（钱袋）（，），是莫斯科大公（约1325年－1340年3月31日在位），" +
                 "亚历山大·涅夫斯基幼子丹尼尔·亚历山德罗维奇之子" +
                 "水调歌头 水调歌头，词牌名。亦称《花犯念奴》、《元会曲》。此调是截取《水调歌》大曲开头一章的创新之作。"));
     }
 
     static void gramUnits6() {
-        Text text = TextSimilaritySearch.textProcess("伊凡一世 thumb|right|伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）");
+        BasicText text = TextProcessor.textProcess("伊凡一世 thumb|right|伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）");
 
-        System.out.println(TextSimilaritySearch.textToGramUnits(text));
+        System.out.println(TextProcessor.textToGramUnits(text));
 
-        System.out.println(TextSimilaritySearch.nGram(text, 2));
+        System.out.println(TextProcessor.nGram(text, 2));
     }
 
     static void tryTextSimilaritySearch() {
 
-        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 1, 1, 0.5, 2, 200, 20, 0.1);
+        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch(
+                1.5,
+                1.5,
+                0.5,
+                800,
+                200,
+                0.5,
+                2,
+                "test");
 
         textSimilaritySearch.addText("伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "伊凡一世", "1", 0.5);
 
@@ -103,15 +112,22 @@ public class TempTest {
         textSimilaritySearch.update();
 
         System.out.println(textSimilaritySearch.avgIdf);
-        System.out.println("a: " + textSimilaritySearch.a);
-        System.out.println("b: " + textSimilaritySearch.b);
 
         System.out.println(textSimilaritySearch.similaritySearch("伊凡二世 水调歌头", 10));
     }
 
     static void trySave() throws Exception {
 
-        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch("test", 1, 1, 0.5, 2, 200, 20, 0.1);
+        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch(
+                1.5, // criticalContentHitCount，临界情况，期望的内容命中Gram个数
+                1.5,  // criticalTitleHitCount，临界情况，期望的标题命中Gram个数
+                0.5, // criticalScore，临界情况score值
+                800, // contentGrowRate，内容命中Gram单项评分增长率，可用于抵抗小idf
+                200, // titleGrowthRate，标题命中Gram单项评分增长率，可用于抵抗小idf
+                0.5, // decayRate，小idf衰减率
+                2, // n-gram中的n，n越大越严格
+                "test" // 库名称
+        );
 
         textSimilaritySearch.addText("伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "伊凡一世", "1", 0.5);
 
