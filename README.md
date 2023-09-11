@@ -118,4 +118,7 @@ TextSimilaritySearch.save(outFile);
 
 数字目前不支持精确匹配
 
-兄弟项目：https://github.com/aldebran97/springboot_text_toolkit/tree/master
+# 兄弟项目
+https://github.com/aldebran97/springboot_text_toolkit/tree/master
+
+提供了API访问方式
