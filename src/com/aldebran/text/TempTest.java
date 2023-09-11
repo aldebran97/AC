@@ -97,7 +97,7 @@ public class TempTest {
                 1.5,
                 1.5,
                 0.5,
-                800,
+                1000,
                 200,
                 0.5,
                 2,
@@ -122,7 +122,7 @@ public class TempTest {
                 1.5, // criticalContentHitCount，临界情况，期望的内容命中Gram个数
                 1.5,  // criticalTitleHitCount，临界情况，期望的标题命中Gram个数
                 0.5, // criticalScore，临界情况score值
-                800, // contentGrowRate，内容命中Gram单项评分增长率，可用于抵抗小idf
+                1000, // contentGrowRate，内容命中Gram单项评分增长率，可用于抵抗小idf
                 200, // titleGrowthRate，标题命中Gram单项评分增长率，可用于抵抗小idf
                 0.5, // decayRate，小idf衰减率
                 2, // n-gram中的n，n越大越严格

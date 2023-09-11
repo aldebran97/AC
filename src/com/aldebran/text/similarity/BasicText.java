@@ -19,6 +19,8 @@ public class BasicText implements Serializable {
 
     public int totalGramsCount;
 
+    public double idfSum;
+
     @Override
     public String toString() {
         return "BasicText{" +

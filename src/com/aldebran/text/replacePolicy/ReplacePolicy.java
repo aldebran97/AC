@@ -1,7 +1,6 @@
 package com.aldebran.text.replacePolicy;
 
 import java.io.Serializable;
-import java.util.regex.Pattern;
 
 /**
  * 替换策略
