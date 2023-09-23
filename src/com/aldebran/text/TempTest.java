@@ -2,9 +2,6 @@ package com.aldebran.text;
 
 import com.aldebran.text.ac.AC;
 import com.aldebran.text.ac.ACPlus;
-import com.aldebran.text.replacePolicy.ReplaceInfo;
-import com.aldebran.text.similarity.BasicText;
-import com.aldebran.text.similarity.TextProcessor;
 import com.aldebran.text.similarity.TextSimilaritySearch;
 
 import java.io.File;
@@ -65,73 +62,70 @@ public class TempTest {
         System.out.println(trieTree.indexOf("ABCEAFBABCQEA"));
     }
 
-    static void regexTest4() {
 
-        String regex = "[·|\\u3002|\\uff1f|\\uff01|\\uff0c|\\u3001|\\uff1b|\\uff1a|\\u201c|\\u201d|\\u2018|\\u2019|\\uff08|\\uff09|\\u300a|\\u300b|\\u3008|\\u3009|\\u3010|\\u3011|\\u300e|\\u300f|\\u300c|\\u300d|\\ufe43|\\ufe44|\\u3014|\\u3015|\\u2026|\\u2014|\\uff5e|\\ufe4f|\\uffe5|\\uff0d \\uff3f|\\u002d]|\\p{Punct}";
+    static String text1 = "《梦游天姥吟留别》是唐代大诗人李白的诗作。这是一首记梦诗，也是一首游仙诗。此诗以记梦为由，抒写了对光明、自由的渴求，对黑暗现实的不满，表现了诗人蔑视权贵、不卑不屈的叛逆精神。";
 
-        ReplaceInfo replaceInfo = new ReplaceInfo("",
-                Pattern.compile(regex),
-                Pattern.compile(regex));
+    static String title1 = "《梦游天姥吟留别》";
 
-        System.out.println(replaceInfo.replace("!！。.你好Hello<《（("));
-    }
+    static String text2 = "《水调歌头·文字觑天巧》是南宋诗人辛弃疾创作的一首词。上片写李子永家亭榭风流华美，有浓郁的田园风味，但不能因此不忧虑世事。";
 
-    static void textProcess5() {
-        System.out.println(TextProcessor.textProcess("《蝶恋花·答李淑一》" +
-                "伊凡一世 thumb|right|伊凡一世 伊凡一世·丹尼洛维奇（钱袋）（，），是莫斯科大公（约1325年－1340年3月31日在位），" +
-                "亚历山大·涅夫斯基幼子丹尼尔·亚历山德罗维奇之子" +
-                "水调歌头 水调歌头，词牌名。亦称《花犯念奴》、《元会曲》。此调是截取《水调歌》大曲开头一章的创新之作。"));
-    }
+    static String title2 = "《水调歌头·文字觑天巧》";
 
-    static void gramUnits6() {
-        BasicText text = TextProcessor.textProcess("伊凡一世 thumb|right|伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）");
+    static String text3 = "伊凡一世富于谋略，为达到自己的目的不择手段，狡猾而残忍。他利用莫斯科优越的地理优势，利用以往积累的财力贿赂金帐汗国统治阶层，又站在对清算封建分裂势力有利的教会一方，抑制以特维尔王公为首的莫斯科邻近各公国。";
 
-        System.out.println(TextProcessor.textToGramUnits(text));
+    static String title3 = "伊凡一世";
 
-        System.out.println(TextProcessor.nGram(text, 2));
-    }
-
-    static void tryTextSimilaritySearch() {
+    static void tryTextSimilaritySearch() throws Exception {
 
         TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch(
-                1.5,
-                1.5,
+                3,
+                3,
                 0.5,
-                1000,
+                1,
+                2,
+                2,
                 200,
-                0.5,
+                10,
                 2,
                 "test");
+        textSimilaritySearch.textPreprocess.loadReplaceMapFromFile("./replace.txt");
 
-        textSimilaritySearch.addText("伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "伊凡一世", "1", 0.5);
+        textSimilaritySearch.addText(text1, title1, "1", 1);
 
-        textSimilaritySearch.addText("水调歌头 水调歌头，词牌名。亦称《花犯念奴》、《元会曲》。", "水调歌头", "2", 0.5);
+        textSimilaritySearch.addText(text2, title2, "2", 1);
 
-        System.out.println(textSimilaritySearch.queryById("1"));
+        textSimilaritySearch.addText(text3, title3, "3", 1);
+
+//        System.out.println(textSimilaritySearch.queryById("1"));
 
         textSimilaritySearch.update();
 
-        System.out.println(textSimilaritySearch.avgIdf);
-
-        System.out.println(textSimilaritySearch.similaritySearch("伊凡二世 水调歌头", 10));
+        System.out.println(textSimilaritySearch.similaritySearch(
+                "《梦游天姥吟留别》作于李白出翰林之后。唐玄宗天宝三载（744），李白在长安受到权贵的排挤，被放出京，返回东鲁（在今山东）家园。" +
+                        "辛弃疾的《水调歌头》在此之后。", 10));
     }
 
     static void trySave() throws Exception {
 
         TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch(
-                1.5, // criticalContentHitCount，临界情况，期望的内容命中Gram个数
-                1.5,  // criticalTitleHitCount，临界情况，期望的标题命中Gram个数
-                0.5, // criticalScore，临界情况score值
-                1000, // contentGrowRate，内容命中Gram单项评分增长率，可用于抵抗小idf
-                200, // titleGrowthRate，标题命中Gram单项评分增长率，可用于抵抗小idf
-                0.5, // decayRate，小idf衰减率
-                2, // n-gram中的n，n越大越严格
-                "test" // 库名称
-        );
+                3,
+                3,
+                0.5,
+                1,
+                2,
+                2,
+                200,
+                10,
+                2,
+                "test");
 
-        textSimilaritySearch.addText("伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）", "伊凡一世", "1", 0.5);
+        textSimilaritySearch.textPreprocess.loadReplaceMapFromFile("./replace.txt");
 
-        textSimilaritySearch.addText("水调歌头 水调歌头，词牌名。亦称《花犯念奴》、《元会曲》。", "水调歌头", "2", 0.5);
+        textSimilaritySearch.addText(text1, title1, "1", 1);
+
+        textSimilaritySearch.addText(text2, title2, "2", 1);
+
+        textSimilaritySearch.addText(text3, title3, "3", 1);
 
         textSimilaritySearch.update();
 
@@ -143,7 +137,9 @@ public class TempTest {
 
         System.out.println(textSimilaritySearch.queryById("1"));
 
-        System.out.println(textSimilaritySearch.similaritySearch("伊凡二世 水调歌头", 10));
+        System.out.println(textSimilaritySearch.similaritySearch(
+                "《梦游天姥吟留别》作于李白出翰林之后。唐玄宗天宝三载（744），李白在长安受到权贵的排挤，被放出京，返回东鲁（在今山东）家园。" +
+                        "辛弃疾的《水调歌头》在此之后。", 10));
     }
 
 }

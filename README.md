@@ -28,7 +28,7 @@ jar cfe AC.jar com.aldebran.text.TempTest .\com\aldebran\text\*.class .\com\alde
 java -jar .\AC.jar
 ```
 
-linux
+linux / macos
 
 # 用途
 
@@ -45,49 +45,69 @@ System.out.println(trieTree.indexOf("001word1002word0003word2"));
 
 ### （2）文本检索，相似检索
 
-插入查询用法
+#### 插入查询用法
 
 ```java
 // 构造
-TextSimilaritySearch textSimilaritySearch=new TextSimilaritySearch(
-        1.5, // criticalContentHitCount，临界情况，期望的内容命中Gram个数
-        1.5,  // criticalTitleHitCount，临界情况，期望的标题命中Gram个数
+TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch(
+        3, // criticalContentHitCount，临界情况，期望的内容命中Gram个数
+        3, // criticalTitleHitCount，临界情况，期望的标题命中Gram个数
         0.5, // criticalScore，临界情况score值
-        1000, // contentGrowRate，内容命中Gram单项评分增长率，可用于抵抗小idf
-        200, // titleGrowthRate，标题命中Gram单项评分增长率，可用于抵抗小idf
-        0.5, // decayRate，小idf衰减率
+        1, // contentK，内容权重
+        2, // titleK，标题权重
+        2, // hitGramsCountLogA，此值越小，命中累计计数对结果的影响越大
+        200, // gramsCountLogA，低长度文本有略微的领先优势，此值越小，低长度文本优势越明显
+        10, // idfGrowthK, idf区分度
         2, // n-gram中的n，n越大越严格
-        "test" // 库名称
-);
+        "test");
+
+// 加载替换库，里面定义了停止词、近义词和类别增强，可以替换为自己的库
+textSimilaritySearch.textPreprocess.loadReplaceMapFromFile("./replace.txt");
+
+String text1 = "《梦游天姥吟留别》是唐代大诗人李白的诗作。这是一首记梦诗，也是一首游仙诗。此诗以记梦为由，抒写了对光明、自由的渴求，对黑暗现实的不满，表现了诗人蔑视权贵、不卑不屈的叛逆精神。";
+
+String title1 = "《梦游天姥吟留别》";
+
+String text2 = "《水调歌头·文字觑天巧》是南宋诗人辛弃疾创作的一首词。上片写李子永家亭榭风流华美，有浓郁的田园风味，但不能因此不忧虑世事。";
+
+String title2 = "《水调歌头·文字觑天巧》";
+
+String text3 = "伊凡一世富于谋略，为达到自己的目的不择手段，狡猾而残忍。他利用莫斯科优越的地理优势，利用以往积累的财力贿赂金帐汗国统治阶层，又站在对清算封建分裂势力有利的教会一方，抑制以特维尔王公为首的莫斯科邻近各公国。";
+
+String title3 = "伊凡一世";
+
 // 插入若干文本
-textSimilaritySearch.addText("伊凡一世  莫斯科大公（约1325年－1340年3月31日在位）","伊凡一世","1",0.5);
-textSimilaritySearch.addText("水调歌头 水调歌头，词牌名。亦称《花犯念奴》、《元会曲》。","水调歌头","2",0.5);
+textSimilaritySearch.addText(text1, title1, "1", 1);
+
+textSimilaritySearch.addText(text2, title2, "2", 1);
+
+textSimilaritySearch.addText(text3, title3, "3", 1);
 
 // 相似查询
-System.out.println(textSimilaritySearch.similaritySearch("伊凡二世 水调歌头",10));
+System.out.println(textSimilaritySearch.similaritySearch(
+"《梦游天姥吟留别》作于李白出翰林之后。唐玄宗天宝三载（744），李白在长安受到权贵的排挤，被放出京，返回东鲁（在今山东）家园。" +
+"辛弃疾的《水调歌头》在此之后。", 10));
 ```
 
-库的保存和加载
+#### 库的保存和加载
 
+保存
+```java
+File outFile = new File("./test-lib"); // 替换为自己的路径
+TextSimilaritySearch.save(textSimilaritySearch, outFile);
+```
+
+加载
 ```java
 // load
+File inFile = new File("./test-lib"); // 替换为自己的路径
 TextSimilaritySearch textSimilaritySearch=TextSimilaritySearch.load(inFile);
-// save
-TextSimilaritySearch.save(outFile);
 ```
 
-### （3）空间效率统计
 
-90386个短文本(平均404.56231053481736 chars)，磁盘空间占用1.2GB
-
-269319个短文本(平均363.58687652932025 chars)，磁盘空间占用2.8GB
-
-800004个文本(平均237.07375463122685 chars)，磁盘空间占用5GB
-
-### （4）时间效率统计
+### （3）时间效率分析
 
 #### AC词库匹配时间
-
 ```text
 词库词数 2493896
 输入文本长度 31chars
@@ -95,73 +115,35 @@ TextSimilaritySearch.save(outFile);
 匹配时间主要与输入长度有关，受库内文本数量影响小。
 ```
 
-#### 相似搜索时间
+#### 相似检索相关时间
 
+入库文章数量: 88480(平均398.2071993670886 chars)
 ```text
-90386个短文本(平均404.56231053481736 chars)
-输入文本长度 47chars
-相似搜索所需时间 22.65ms
-匹配时间主要与输入长度有关，受库内文本数量影响小。
-
-```
-```text
-269319个短文本(平均363.58687652932025 chars)
-输入文本长度 47chars
-相似搜索所需时间 70.132ms
-匹配时间主要与输入长度有关，受库内文本数量影响小。
-
-```
-```text
-800004个文本(平均237.07375463122685 chars)
-输入文本长度 47chars
-相似搜索所需时间 127.076ms
-匹配时间主要与输入长度有关，受库内文本数量影响小。
-
+相似搜索时间: 15.334ms
+插入文章所用时间：75.226s
+刷新索引所用时间：8.807s
+持久化所用时间：47.818s
+加载所有时间：
 ```
 
-#### 入库时间
-
+入库文章数量: 800003(平均233.0957046411076 chars)
 ```text
-90386个文本(平均404.56231053481736 chars)
-插入文章所用时间：62.243s
-刷新索引所用时间：12.116s
-总时间：74.359s
-未计算保存到磁盘的时间
-```
-```text
-269319个文本(平均363.58687652932025 chars)
-插入文章所用时间：170.165s
-刷新索引所用时间：22.152s
-总时间：192.317s
-未计算保存到磁盘的时间
-```
-```text
-800004个文本(平均237.07375463122685 chars)
-插入文章所用时间：1814.694s
-刷新索引所用时间：62.194s
-持久化所用时间: 328.198s
-总时间：2205.086s
+相似搜索时间: 127.778ms
+插入文章所用时间：1446.497s
+刷新索引所用时间：90.8s
+持久化所用时间：477.163s
+加载所有时间：
 ```
 
+### （4）空间效率统计
 
-#### 加载时间（程序启动时候，只需要一次）
+入库文章数量: 88480(平均398.2071993670886 chars)，磁盘空间占用约1.2GB，内存占用约
+入库文章数量: 800003(平均233.0957046411076 chars)，磁盘空间占用约5.1GB，内存占用约
 
-```text
-90386个文本
-加载所需时间44.493s
-```
-```text
-269319个文本
-加载所需时间84.502s
-```
-```text
-800004个文本
-加载所需时间146.559s
-```
 （5）注意事项
 
 当文章非常多的时候，要指定很大的Xss和Xms，例如：
--Xss1024m -Xms28g
+-Xss1024m -Xms30g
 
 （6）TODO
 

@@ -16,5 +16,7 @@ public class FullText implements Serializable {
 
     public BasicText contentText;
 
-    public double articleWeight = 0.5; // 文章附加权重
+    public double articleWeight = 1; // 文章附加权重
+
+    public int totalGramsCount; // 标题和文本的长度总和
 }

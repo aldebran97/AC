@@ -1,9 +1,10 @@
 package com.aldebran.text.replacePolicy;
 
+import java.io.Serializable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class WordReplaceInfo extends ReplaceInfo {
+public class WordReplaceInfo extends ReplaceInfo implements Serializable {
     public WordReplaceInfo() {
         super("", Pattern.compile("[a-z]+"), Pattern.compile("[a-z]+"));
     }

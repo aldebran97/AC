@@ -19,7 +19,7 @@ public class BasicText implements Serializable {
 
     public int totalGramsCount;
 
-    public double idfSum;
+    public double basicTextAvgIdf;
 
     @Override
     public String toString() {

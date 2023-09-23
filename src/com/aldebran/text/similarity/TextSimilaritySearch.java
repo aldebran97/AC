@@ -14,29 +14,70 @@ import java.util.*;
  */
 public class TextSimilaritySearch implements Serializable {
 
-    // 用于计算得分的各种参数
-    public double criticalContentHitCount = 1;
+    /**
+     * 用于计算得分的各种参数
+     */
+    public double criticalContentHitCount = 1; // 临界情况内容期望命中的gram个数
 
-    public double criticalTitleHitCount = 1;
+    public double criticalTitleHitCount = 1; // 临界情况标题期望命中的gram个数
+    public double criticalScore = 0.5; // 临界情况期望的分值
+    public int n = 2;  // n-gram中n的取值
 
-    public double criticalScore = 0.5;
+    public double contentK = 1; // 内容权重
 
-    public int n = 2;
+    public double titleK = 1; // 标题权重
 
-    public double contentGrowRate = 5;
+    public double hitGramsCountLogA = 8; // gram命中时对数量进行log运算的底数
 
-    public double titleGrowthRate = 5;
+    public double gramsCountLogA = 50; // 使得长度短的匹配文本有一些优势
 
-    public double decayRate = 0.5;
+    public double idfGrowthK = 10; // idf差距明显化
 
-    public double avgIdf;
 
-    public Map<String, Double> gramIdfMap = new HashMap<>();
+    /**
+     * 用于计算得分的各种统计值
+     */
+    public double gramAvgIdf; // gram平均IDf
 
+    public double gramMinIdf; // gram最小IDf
+
+    public double gramMaxIdf; // gram最大IDF
+
+    public double maxTitleAvgIdf; // title平均IDF的最大值
+
+    public double minTitleAvgIdf; // title平均IDF的最小值
+
+    public double avgTitleAvgIdf; // title平均IDF的平均值
+
+    public double maxContentAvgIdf; // content平均IDf的最大值
+
+    public double minContentAvgIdf; // content平均IDf的最小值
+
+    public double avgContentAvgIdf; // content平均IDf的平均值
+
+    public double titleIdfRate; // 为了让title和content变得可以比较而增加的一个比率，取值为avgContentAvgIdf/avgTitleAvgIdf
+
+    // 基础增加值
+    public double basicGrowthValue;
+
+    // 标题grams个数总和
+    public double titleGramsCountSum = 0;
+
+    // 内容grams个数总和
+    public double contentGramsCountSum = 0;
+
+
+    /**
+     * 得分计算相关
+     */
     public ScoreCalculator scoreCalculator = new ScoreCalculator();
 
+    public AvgIdfGrowthCalculator avgIdfGrowthCalculator = new AvgIdfGrowthCalculator();
 
-//    public ScoreCalculator2 scoreCalculator = new ScoreCalculator2();
+    /**
+     * 存储结构
+     */
+    public Map<String, Double> gramIdfMap = new HashMap<>();
 
     public String libName;
 
@@ -51,24 +92,27 @@ public class TextSimilaritySearch implements Serializable {
 
     public AC contentAC = new AC();
 
-    public double titleGramsCountSum = 0;
+    public TextPreprocess textPreprocess = new TextPreprocess();
 
-    public double contentGramsCountSum = 0;
 
     public TextSimilaritySearch(double criticalContentHitCount,
                                 double criticalTitleHitCount,
                                 double criticalScore,
-                                double contentGrowRate,
-                                double titleGrowthRate,
-                                double decayRate,
+                                double contentK,
+                                double titleK,
+                                double hitGramsCountLogA,
+                                double gramsCountLogA,
+                                double idfGrowthK,
                                 int n,
                                 String libName) {
         this.criticalContentHitCount = criticalContentHitCount;
         this.criticalTitleHitCount = criticalTitleHitCount;
         this.criticalScore = criticalScore;
-        this.contentGrowRate = contentGrowRate;
-        this.titleGrowthRate = titleGrowthRate;
-        this.decayRate = decayRate;
+        this.contentK = contentK;
+        this.titleK = titleK;
+        this.hitGramsCountLogA = hitGramsCountLogA;
+        this.gramsCountLogA = gramsCountLogA;
+        this.idfGrowthK = idfGrowthK;
         this.n = n;
         this.libName = libName;
 
@@ -79,15 +123,15 @@ public class TextSimilaritySearch implements Serializable {
         processIdf();
         contentAC.update();
         titleAC.update();
+        generateFullTextsAvgIdf();
         changeScoreArgs();
-        generateAllTextsIdfSum();
     }
 
     public int textsCount() {
         return idTextMap.size();
     }
 
-    public double idf(String gram) {
+    private double idf(String gram) {
         Set<String> s = new HashSet<>();
         Set<String> ids = titleGramTextIdsMap.get(gram);
         if (ids != null) {
@@ -111,52 +155,64 @@ public class TextSimilaritySearch implements Serializable {
 
         double idfSum = 0;
         long gramsCount = s.size();
+        gramMaxIdf = Double.MIN_VALUE;
+        gramMinIdf = Double.MAX_VALUE;
 
         for (String gram : s) {
             double idf = idf(gram);
+//            assert MMath.legalPositiveDoubleValue(idf);
+            if (idf < gramMinIdf) {
+                gramMinIdf = idf;
+            }
+            if (idf > gramMaxIdf) {
+                gramMaxIdf = idf;
+            }
             gramIdfMap.put(gram, idf);
             idfSum += idf;
         }
 
-        avgIdf = idfSum / gramsCount;
+        gramAvgIdf = idfSum / gramsCount;
+//        assert MMath.legalPositiveDoubleValue(gramAvgIdf);
+//        assert MMath.legalPositiveDoubleValue(gramMaxIdf);
+//        assert MMath.legalPositiveDoubleValue(gramMinIdf);
+        System.out.println("gramAvgIdf: " + gramAvgIdf);
+        System.out.println("gramMaxIdf: " + gramMaxIdf);
+        System.out.println("gramMinIdf: " + gramMinIdf);
     }
 
     public void changeArgs(double criticalContentHitCount,
                            double criticalTitleHitCount,
                            double criticalScore,
-                           double contentGrowRate,
-                           double titleGrowthRate,
-                           double decayRate) {
+                           double contentK,
+                           double titleK,
+                           double hitGramsCountLogA,
+                           double gramsCountLogA,
+                           double idfGrowthK) {
         this.criticalContentHitCount = criticalContentHitCount;
         this.criticalTitleHitCount = criticalTitleHitCount;
         this.criticalScore = criticalScore;
-        this.contentGrowRate = contentGrowRate;
-        this.titleGrowthRate = titleGrowthRate;
-        boolean changeDecayRate = Math.abs(decayRate - this.decayRate) > 0.0001;
-        this.decayRate = decayRate;
+        this.contentK = contentK;
+        this.titleK = titleK;
+        this.hitGramsCountLogA = hitGramsCountLogA;
+        this.gramsCountLogA = gramsCountLogA;
+        this.idfGrowthK = idfGrowthK;
         changeScoreArgs();
-        if (changeDecayRate) {
-            generateAllTextsIdfSum();
-        }
+//        generateFullTextsAvgIdf();
     }
 
-    public void changeScoreArgs() {
+    private void changeScoreArgs() {
         scoreCalculator.update(criticalContentHitCount,
                 criticalTitleHitCount,
                 criticalScore,
-                contentGrowRate,
-                titleGrowthRate,
-                contentGramsCountSum / textsCount(),
-                titleGramsCountSum / textsCount(),
-                avgIdf
+                avgContentAvgIdf,
+                basicGrowthValue,
+                contentK,
+                titleK,
+                (contentGramsCountSum + titleGramsCountSum) / textsCount(),
+                gramsCountLogA,
+                idfGrowthK
         );
-//        scoreCalculator.update(criticalContentHitCount,
-//                criticalTitleHitCount,
-//                criticalScore,
-//                contentGrowRate,
-//                titleGrowthRate,
-//                avgIdf
-//        );
+        avgIdfGrowthCalculator.update(basicGrowthValue, gramAvgIdf, gramMinIdf, gramMaxIdf, titleIdfRate, idfGrowthK);
     }
 
     public void addText(String content, String title, String id, double weight) {
@@ -165,8 +221,8 @@ public class TextSimilaritySearch implements Serializable {
         fullText.articleWeight = weight;
         fullText.id = id;
 
-        fullText.contentText = TextProcessor.textProcess(content);
-        fullText.titleText = TextProcessor.textProcess(title);
+        fullText.contentText = textPreprocess.textProcess(content);
+        fullText.titleText = textPreprocess.textProcess(title);
 
         fullText.contentText.sourceText = content;
         fullText.titleText.sourceText = title;
@@ -174,8 +230,20 @@ public class TextSimilaritySearch implements Serializable {
         fullText.contentText.gramCountMap = new HashMap<>();
         fullText.titleText.gramCountMap = new HashMap<>();
 
-        List<String> contentGrams = TextProcessor.nGram(fullText.contentText, n);
-        List<String> titleGrams = TextProcessor.nGram(fullText.titleText, n);
+        List<String> contentGrams = textPreprocess.nGram(fullText.contentText, n);
+        List<String> titleGrams = textPreprocess.nGram(fullText.titleText, n);
+
+        if (contentGrams.isEmpty() || titleGrams.isEmpty()) {
+            // ignore too short text
+//            System.out.printf("ignore, id: %s, title: %s, content: %s%n", id, title, content);
+            return;
+        }
+
+        if (contentGrams.get(0).length() < n || titleGrams.get(0).length() < n) {
+            // ignore too short text
+//            System.out.printf("ignore, id: %s, title: %s, content: %s%n", id, title, content);
+            return;
+        }
 
         // 处理内容
         for (String gram : contentGrams) {
@@ -219,13 +287,14 @@ public class TextSimilaritySearch implements Serializable {
 
     }
 
+
     public List<SimilaritySearchResult> similaritySearch(String text, int topK) {
 
         List<SimilaritySearchResult> result = new LinkedList<>();
 
-        BasicText basicText = TextProcessor.textProcess(text);
+        BasicText basicText = textPreprocess.textProcess(text);
 
-        String gPString = String.join("", TextProcessor.textToGramUnits(basicText));
+        String gPString = String.join("", textPreprocess.textToGramUnits(basicText));
 
         List<AC.MatchResult> contentMRs = contentAC.indexOf(gPString);
         List<AC.MatchResult> titleMRs = titleAC.indexOf(gPString);
@@ -285,55 +354,56 @@ public class TextSimilaritySearch implements Serializable {
 
         for (TextMatchInfo textMatchInfo : idMatchInfoMap.values()) {
             FullText fullText = textMatchInfo.text;
+//            System.out.printf("title: %s, init title score: %s, init content score: %s%n",
+//                    fullText.titleText.resultText, fullText.contentText.basicTextAvgIdf, fullText.titleText.basicTextAvgIdf);
+
+            if (Double.isNaN(fullText.contentText.basicTextAvgIdf)) {
+                System.out.println("content NaN");
+                System.out.println(fullText.contentText);
+            }
+
+            if (Double.isNaN(fullText.titleText.basicTextAvgIdf)) {
+                System.out.println("content NaN");
+                System.out.println(fullText.titleText);
+            }
 
             // 基于内容
-            double contentIdfSum = fullText.contentText.idfSum;
+            double thisContentAvgIdf = fullText.contentText.basicTextAvgIdf;
 
             for (String hitContentGram : textMatchInfo.hitContentGramCountMap.keySet()) {
                 int gTextGramsCount = textMatchInfo.hitContentGramCountMap.get(hitContentGram);
                 int libContentGramsCount = fullText.contentText.gramCountMap.get(hitContentGram);
                 double idf = gramIdfMap.get(hitContentGram);
-                if (idf < avgIdf) {
-                    idf *= decayRate;
-                }
-                contentIdfSum -= libContentGramsCount * idf;
-                double log_a = 5;
-                contentIdfSum += MMath.log(log_a, libContentGramsCount + log_a - 1)
-                        * contentGrowRate
-                        * MMath.log(log_a, gTextGramsCount + log_a - 1) * idf;
+                double this_growth_value = avgIdfGrowthCalculator.calc(idf, false);
+
+                thisContentAvgIdf += MMath.log(hitGramsCountLogA, libContentGramsCount + hitGramsCountLogA - 1)
+                        * MMath.log(hitGramsCountLogA, gTextGramsCount + hitGramsCountLogA - 1) * this_growth_value;
             }
 
-            double contentAvgIdf = contentIdfSum / fullText.contentText.totalGramsCount;
 
             // 基于标题
-            double titleIdfSum = fullText.titleText.idfSum;
+            double thisTitleAvgIdf = fullText.titleText.basicTextAvgIdf * titleIdfRate;
 
             for (String hitTitleGram : textMatchInfo.hitTitleGramCountMap.keySet()) {
                 int gTextGramsCount = textMatchInfo.hitTitleGramCountMap.get(hitTitleGram);
                 int libTitleGramsCount = fullText.titleText.gramCountMap.get(hitTitleGram);
                 double idf = gramIdfMap.get(hitTitleGram);
-                titleIdfSum -= libTitleGramsCount * idf;
-                double log_a = 5;
-                titleIdfSum += MMath.log(log_a, libTitleGramsCount + log_a - 1)
-                        * titleGrowthRate
-                        * MMath.log(log_a, gTextGramsCount + log_a - 1) * idf;
+
+                double this_growth_value = avgIdfGrowthCalculator.calc(idf, true);
+
+                thisTitleAvgIdf += MMath.log(hitGramsCountLogA, libTitleGramsCount + hitGramsCountLogA - 1)
+                        * MMath.log(hitGramsCountLogA, gTextGramsCount + hitGramsCountLogA - 1) * this_growth_value;
+
             }
 
-            double titleAvgIdf = titleIdfSum / fullText.titleText.totalGramsCount;
+            double scoreX = (contentK * thisContentAvgIdf + titleK * thisTitleAvgIdf) / (contentK + titleK)
+                    * fullText.articleWeight;
 
-            double scoreX = (contentAvgIdf + titleAvgIdf) / 2;
+            // 除去平均长度的log值
+
+            scoreX /= MMath.log(gramsCountLogA, fullText.totalGramsCount + gramsCountLogA);
 
             double score = scoreCalculator.score(scoreX);
-
-            // 过滤无效文章，可去除此部分
-            if (fullText.contentText.totalGramsCount <
-                    this.contentGramsCountSum / this.textsCount() * 0.5) {
-                score *= 0.1;
-            }
-
-//            double score = scoreCalculator.score(scoreX,
-//                    fullText.titleText.totalGramsCount,
-//                    fullText.contentText.totalGramsCount);
 
             SimilaritySearchResult similaritySearchResult = new SimilaritySearchResult();
 
@@ -415,33 +485,64 @@ public class TextSimilaritySearch implements Serializable {
         return titleGramTextIdsMap.size();
     }
 
-    private double weightScore(double score, double weight) {
-        // (0.5,1) (1,3)
-        // k = 4, b = -1
-        // 可以采用非线性
-        double k = weight * 4 - 1;
-        return k * score;
-    }
-
-    private void generateTextIdfSum(BasicText basicText, boolean isTitle) {
-        basicText.idfSum = 0;
+    // 生成BasicText的平均IDF
+    private void generateBasicTextAvgIdf(BasicText basicText) {
+        basicText.basicTextAvgIdf = 0;
         for (String gram : basicText.gramCountMap.keySet()) {
             int count = basicText.gramCountMap.get(gram);
             double idf = gramIdfMap.get(gram);
-            if (!isTitle) {
-                if (idf < avgIdf) {
-                    idf *= decayRate;
-                }
-            }
-            basicText.idfSum += idf * count;
+            basicText.basicTextAvgIdf += idf * count;
         }
+        basicText.basicTextAvgIdf /= basicText.totalGramsCount;
     }
 
-    private void generateAllTextsIdfSum() {
+    // 生成所有FullText的平均IDF和基础增加值
+    private void generateFullTextsAvgIdf() {
+
+        maxTitleAvgIdf = Double.MIN_VALUE;
+        minTitleAvgIdf = Double.MAX_VALUE;
+        double titleAvgIdfSum = 0;
+
+        maxContentAvgIdf = Double.MIN_VALUE;
+        minContentAvgIdf = Double.MAX_VALUE;
+        double contentAvgIdfSum = 0;
+
         for (FullText fullText : idTextMap.values()) {
-            generateTextIdfSum(fullText.titleText, true);
-            generateTextIdfSum(fullText.contentText, false);
+            generateBasicTextAvgIdf(fullText.titleText);
+            generateBasicTextAvgIdf(fullText.contentText);
+
+            if (fullText.titleText.basicTextAvgIdf < minTitleAvgIdf) {
+                minTitleAvgIdf = fullText.titleText.basicTextAvgIdf;
+            }
+            if (fullText.titleText.basicTextAvgIdf > maxTitleAvgIdf) {
+                maxTitleAvgIdf = fullText.titleText.basicTextAvgIdf;
+            }
+
+            titleAvgIdfSum += fullText.titleText.basicTextAvgIdf;
+
+            if (fullText.contentText.basicTextAvgIdf < minContentAvgIdf) {
+                minContentAvgIdf = fullText.contentText.basicTextAvgIdf;
+            }
+            if (fullText.contentText.basicTextAvgIdf > maxContentAvgIdf) {
+                maxContentAvgIdf = fullText.contentText.basicTextAvgIdf;
+            }
+
+            contentAvgIdfSum += fullText.contentText.basicTextAvgIdf;
+
+            fullText.totalGramsCount = fullText.titleText.totalGramsCount + fullText.contentText.totalGramsCount;
+//            System.out.println(fullText.totalGramsCount);
         }
+
+        avgTitleAvgIdf = titleAvgIdfSum / idTextMap.size();
+        System.out.println("avgTitleAvgIdf: " + avgTitleAvgIdf);
+        avgContentAvgIdf = contentAvgIdfSum / idTextMap.size();
+        System.out.println("avgContentAvgIdf: " + avgContentAvgIdf);
+        titleIdfRate = avgContentAvgIdf / avgTitleAvgIdf;
+        System.out.println("titleIdfRate: " + titleIdfRate);
+
+        // 基础增加值采用极差
+        basicGrowthValue = maxContentAvgIdf - minContentAvgIdf;
+        System.out.println("basicGrowthValue: " + basicGrowthValue);
     }
 
     public Statistics getStatistics() {
@@ -456,4 +557,6 @@ public class TextSimilaritySearch implements Serializable {
         statistics.avgOriginTextLength = originTextLength / statistics.textsCount;
         return statistics;
     }
+
+
 }
