@@ -139,6 +139,21 @@ System.out.println(textSimilaritySearch.similaritySearch(
 [SimilaritySearchResult{id='1', title='《梦游天姥吟留别》', text='《梦游天姥吟留别》是唐代大诗人李白的诗作。这是一首记梦诗，也是一首游仙诗。此诗以记梦为由，抒写了对光明、自由的渴求，对黑暗现实的不满，表现了诗人蔑视权贵、不卑不屈的叛逆精神。', score=0.6464106850592721}, SimilaritySearchResult{id='2', title='《水调歌头·文字觑天巧》', text='《水调歌头·文字觑天巧》是南宋诗人辛弃疾创作的一首词。上片写李子永家亭榭风流华美，有浓郁的田园风味，但不能因此不忧虑世事。', score=0.5641475960385378}]
 ```
 
+#### 重定义参数
+在库建立好后，参数仍旧可调整
+```java
+textSimilaritySearch.changeArgs(
+        3, // criticalContentHitCount，临界情况，期望的内容命中Gram个数
+        3, // criticalTitleHitCount，临界情况，期望的标题命中Gram个数
+        0.5, // criticalScore，临界情况score值
+        1, // contentK，内容权重
+        2, // titleK，标题权重
+        2, // hitGramsCountLogA，此值越小，命中累计计数对结果的影响越大
+        200, // gramsCountLogA，低长度文本有略微的领先优势，此值越小，低长度文本优势越明显
+        10 // idfGrowthK, gram得分区分度，此值越大，得分梯度越大
+        );
+```
+
 #### 库的保存和加载
 
 保存
