@@ -73,6 +73,7 @@ import com.aldebran.text.similarity.TextSimilaritySearch;
 
 用法
 
+代码
 ```java
 AC trieTree=new AC();
 trieTree.addWords(Arrays.asList("word1","word2","word3"));
@@ -80,10 +81,16 @@ trieTree.update();
 System.out.println(trieTree.indexOf("001word1002word0003word2"));
 ```
 
+输出
+```text
+[MatchResult{word='word1', index=3}, MatchResult{word='word2', index=19}]
+```
+
 ### （2）文本检索，相似检索
 
 #### 插入查询用法
 
+代码
 ```java
 // 构造
 TextSimilaritySearch textSimilaritySearch=new TextSimilaritySearch(
@@ -94,7 +101,7 @@ TextSimilaritySearch textSimilaritySearch=new TextSimilaritySearch(
         2, // titleK，标题权重
         2, // hitGramsCountLogA，此值越小，命中累计计数对结果的影响越大
         200, // gramsCountLogA，低长度文本有略微的领先优势，此值越小，低长度文本优势越明显
-        10, // idfGrowthK, idf区分度，此值越大，得分梯度越大
+        10, // idfGrowthK, gram得分区分度，此值越大，得分梯度越大
         2, // n-gram中的n，n越大越严格
         "test" // 相似库名称
         );
@@ -127,12 +134,17 @@ System.out.println(textSimilaritySearch.similaritySearch(
 "辛弃疾的《水调歌头》在此之后。",10));
 ```
 
+输出
+```text
+[SimilaritySearchResult{id='1', title='《梦游天姥吟留别》', text='《梦游天姥吟留别》是唐代大诗人李白的诗作。这是一首记梦诗，也是一首游仙诗。此诗以记梦为由，抒写了对光明、自由的渴求，对黑暗现实的不满，表现了诗人蔑视权贵、不卑不屈的叛逆精神。', score=0.6464106850592721}, SimilaritySearchResult{id='2', title='《水调歌头·文字觑天巧》', text='《水调歌头·文字觑天巧》是南宋诗人辛弃疾创作的一首词。上片写李子永家亭榭风流华美，有浓郁的田园风味，但不能因此不忧虑世事。', score=0.5641475960385378}]
+```
+
 #### 库的保存和加载
 
 保存
 
 ```java
-File outFile=new File("./test-lib"); // 替换为自己的路径
+File outFile = new File("./test-lib"); // 替换为自己的路径
 TextSimilaritySearch.save(textSimilaritySearch,outFile);
 ```
 
@@ -140,7 +152,7 @@ TextSimilaritySearch.save(textSimilaritySearch,outFile);
 
 ```java
 // load
-File inFile=new File("./test-lib"); // 替换为自己的路径
+File inFile = new File("./test-lib"); // 替换为自己的路径
 TextSimilaritySearch textSimilaritySearch=TextSimilaritySearch.load(inFile);
 ```
 
@@ -157,39 +169,102 @@ TextSimilaritySearch textSimilaritySearch=TextSimilaritySearch.load(inFile);
 
 #### 相似检索相关时间
 
-入库文章数量: 88480(平均398.2071993670886 chars)
+入库文章数量: 88480(每个文章平均398.2071993670886 chars)
 
 ```text
-相似搜索时间: 15.334ms
-插入文章所用时间：75.226s
-刷新索引所用时间：8.807s
-持久化所用时间：47.818s
-加载所有时间：
+搜索操作：
+相似搜索时间: 14.352ms
+
+入库操作：
+插入文章时间：75.226s
+刷新索引时间：8.807s
+
+保存库操作：
+持久化时间：47.818s
+
+加载操作：
+加载时间：20.257s （程序启动只需一次）
 ```
 
-入库文章数量: 800003(平均233.0957046411076 chars)
+入库文章数量: 800003(每个文章平均233.0957046411076 chars)
 
 ```text
-相似搜索时间: 127.778ms
-插入文章所用时间：1446.497s
-刷新索引所用时间：90.8s
-持久化所用时间：477.163s
-加载所有时间：
+搜索操作：
+相似搜索: 116.738ms
+
+入库操作：
+插入文章时间：1446.497s
+刷新索引时间：90.8s
+
+保存库操作：
+持久化时间：477.163s
+
+加载操作：
+加载时间：181.485s（程序启动只需一次）
 ```
 
 ### （4）空间效率统计
 
-入库文章数量: 88480(平均398.2071993670886 chars)，磁盘空间占用约1.2GB，内存占用约
-入库文章数量: 800003(平均233.0957046411076 chars)，磁盘空间占用约5.1GB，内存占用约
+```text
+入库文章数量: 88480(平均398.2071993670886 chars)，磁盘空间占用约1.2GB，内存占用约9G。
+入库文章数量: 800003(平均233.0957046411076 chars)，磁盘空间占用约5.1GB，内存占用约24G。
+```
 
-（5）注意事项
+### （5）替换库说明（见replace.txt，可自定义追加）
 
+格式说明
+```text
+# 停止词，标点符号
+·
+`
+。
+.
+
+# 停止词，中文字词
+的
+了
+
+# 相似词语
+高兴 快乐
+
+# 类别追加
+SUV SUV运动型多用途汽车
+```
+
+原则
+```text
+（1）停止词是必备的，减少干扰。一行只需一个词（字）。
+
+（2）相似词语替换可进一步增加召回率（查全率），不过对于知识检索领域，没有相似词库也能取得较好的效果。
+
+（3）类别追加，增加搜索的通用性，比如追加全称，或者追加一个类型。例如“老虎 猫科动物”，这会显著增加召回率（查全率），但是精确率可能会有所降低（误杀率提高）。
+（score可能会变得比较高，但排名不变）
+```
+
+### （6）注意事项
+
+```text
 当文章非常多的时候，要指定很大的Xss和Xms，例如：
 -Xss1024m -Xms30g
+```
 
-（6）TODO
+### （7）TODO
 
-数字目前不支持精确匹配
+```text
+1. 数字目前不支持精确匹配，有需求应追加参数控制。
+
+2. AvgIdfGrowthCalculator用于计算gram得分，并且一定程度上扩大gram得分差距，依靠idfGrowthK参数控制。
+目前是线性均匀增加，可继承AvgIdfGrowthCalculator实现S型曲线（AvgIdfGrowthCalculatorSigmoid），扩大期望值附近的得分差距，减少高分之间（低分之间）的差距。
+或者实现x^3类型的曲线（AvgIdfGrowthCalculatorCube），减少期望值附近的得分差距，增加高分之间（低分之间）的差距。
+```
+
+### （8）效率测试平台说明
+```text
+处理器：intel i9-12900HX 16核24线程
+内存：32G物理内存 4800MHz
+操作系统：Windows11
+Java版本：OpenJDK20（你可以用JDK8，但内存占用会有所增加）
+```
 
 # 兄弟项目
 
