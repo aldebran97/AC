@@ -92,6 +92,8 @@ java代码示例见[TempTest.java](src%2Fcom%2Faldebran%2Ftext%2FTempTest.java)
 
 python代码示例见[python_call_example.py](python_call_example.py)
 
+python调用时，效率仅为java调用的0.55-0.65，但时间在可接受范围内。
+
 ### 1. 导入依赖 + 准备工作
 
 Java：首先在项目里引入jar包，并且import class
@@ -430,8 +432,11 @@ SUV SUV运动型多用途汽车
 ## 六、注意事项
 
 ```text
-当文章非常多的时候，要指定很大的Xss和Xms，例如：
+1. 当文章非常多的时候，要指定很大的Xss和Xms，例如：
 -Xss1024m -Xms30g
+
+2. 目前请用Oracle Java 8版本的JDK，因为高版本的jdk对最大栈空间做了限制，可能导致太大的库导出出现栈溢出异常。
+以后会采用平坦化的导出方式，不会出现栈溢出。
 ```
 
 ## 七、TODO
@@ -442,6 +447,8 @@ SUV SUV运动型多用途汽车
 2. AvgIdfGrowthCalculator用于计算gram得分，并且一定程度上扩大gram得分差距，依靠idfGrowthK参数控制。
 目前是线性均匀增加，可继承AvgIdfGrowthCalculator实现S型曲线（AvgIdfGrowthCalculatorSigmoid），扩大期望值附近的得分差距，减少高分之间（低分之间）的差距。
 或者实现x^3类型的曲线（AvgIdfGrowthCalculatorCube），减少期望值附近的得分差距，增加高分之间（低分之间）的差距。
+
+3. 换一种方法实现库的导出和加载，目前的方法对Java栈空间消耗很大，而高版本的JDK对栈空间上限做了限制。
 ```
 
 ## 八、效率测试平台说明

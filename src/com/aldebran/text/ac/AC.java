@@ -1,5 +1,9 @@
 package com.aldebran.text.ac;
 
+import com.aldebran.text.util.SerialUtil;
+
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 import java.util.function.Consumer;
@@ -14,21 +18,24 @@ import java.util.function.Consumer;
 public class AC implements Serializable {
 
     // AC自动机结点定义
-    public static class ACNode implements Serializable{
+    public static class ACNode implements Serializable {
         public String charContent; // 字符内容，之所以不用char，因为考虑了特殊字符，两字节无法表示的情况
         public List<ACNode> children; // 子结点
         public ACNode mismatchPointer; // 失配结点
         public ACNode parent; // 父结点
         public String word; // 是否可作为词尾，用于处理包含关系
 
+        public long id = 0;
+
 
         public Map<String, ACNode> childContentChildMap = new HashMap<>(); // value不用index
 
-        public ACNode(String charContent, List<ACNode> children, ACNode mismatchPointer, ACNode parent) {
+        public ACNode(String charContent, List<ACNode> children, ACNode mismatchPointer, ACNode parent, long id) {
             this.charContent = charContent;
             this.children = children;
             this.mismatchPointer = mismatchPointer;
             this.parent = parent;
+            this.id = id;
         }
 
         @Override
@@ -78,7 +85,9 @@ public class AC implements Serializable {
         }
     }
 
-    public ACNode root = new ACNode("", new ArrayList<>(), null, null);
+    public ACNode root = new ACNode("", new ArrayList<>(), null, null, 0);
+
+    public long nextId = 1;
 
     // 添加词
     public void addWords(List<String> words) {
@@ -92,7 +101,7 @@ public class AC implements Serializable {
                 find = current.childContentChildMap.get(charContent);
 
                 if (find == null) {
-                    find = new ACNode(charContent, new ArrayList<>(), null, current);
+                    find = new ACNode(charContent, new ArrayList<>(), null, current, nextId++);
                     current.children.add(find);
                     current.childContentChildMap.put(charContent, find);
                 }
@@ -208,5 +217,13 @@ public class AC implements Serializable {
         if (find != null && find.word != null) {
             results.add(new MatchResult(find.word, p - find.word.length()));
         }
+    }
+
+    public static File save(AC ac, File outFile) throws IOException {
+        return SerialUtil.saveOne(ac, outFile);
+    }
+
+    public static AC load(File inFile) throws Exception {
+        return (AC) SerialUtil.loadOne(inFile);
     }
 }
