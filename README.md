@@ -37,7 +37,7 @@ java -jar .\AC.jar
 linux / macos
 
 ```shell
-export JAVA_TOOL_OPTIONS = "-Dfile.encoding=UTF-8"
+export JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8"
 
 # 下载源码
 git clone https://github.com/aldebran97/AC.git
@@ -127,6 +127,11 @@ textSimilaritySearch.addText(text1,title1,"1",1);
 textSimilaritySearch.addText(text2,title2,"2",1);
 
 textSimilaritySearch.addText(text3,title3,"3",1);
+
+// 首次插入完毕后，一定要updae，至关重要！
+// 后续相似库发生更新后，累计插入一些数据后再update！此方法不适合频繁调用！如果不update，仅仅查不到新数据，旧数据仍旧能查到。
+// 功能为：更新适配指针、统计指标和score计算器
+textSimilaritySearch.update();
 
 // 相似查询
 System.out.println(textSimilaritySearch.similaritySearch(
