@@ -4,8 +4,14 @@ python调用相似检索例子
 
 import os
 
-os.environ['CLASSPATH'] = r"C:\Users\aldebran\user_dir\code\AC\out2"
-os.environ['JAVA_HOME'] = r'D:\user_dir\program_files\jdk-20.0.2'
+os.environ['CLASSPATH'] = r"C:\Users\aldebran\user_dir\code\AC\out2\AC.jar"
+os.environ['JAVA_HOME'] = r"D:\Program Files\Java\jdk-1.8\bin"
+
+import jnius_config
+
+# 指定了堆内存1G，栈内存256M。根据文章数量和文章长度调整。（文章数量对内存的消耗比文章长度大）
+jnius_config.add_options('-Xms1g', '-Xmx1g', '-Xss256m')
+
 from jnius import autoclass
 
 AC_CLASS = autoclass('com.aldebran.text.ac.AC')
