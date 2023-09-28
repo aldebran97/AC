@@ -1,6 +1,7 @@
 package com.aldebran.text.replacePolicy;
 
 import java.io.Serializable;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,5 +42,14 @@ public class ReplaceInfo implements Serializable {
         }
 
         return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ReplaceInfo that = (ReplaceInfo) o;
+        return Objects.equals(replacement, that.replacement) && Objects.equals(target.pattern(), that.target.pattern())
+                && Objects.equals(pattern.pattern(), that.pattern.pattern());
     }
 }

@@ -4,15 +4,13 @@ import com.aldebran.text.ac.AC;
 import com.aldebran.text.ac.ACPlus;
 import com.aldebran.text.replacePolicy.ReplaceInfo;
 import com.aldebran.text.replacePolicy.WordReplaceInfo;
+import com.aldebran.text.util.CheckUtil;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -157,4 +155,12 @@ public class TextPreprocess implements Serializable {
         return result;
     }
 
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TextPreprocess that = (TextPreprocess) o;
+        return Objects.equals(replaceMap, that.replaceMap) && CheckUtil.acEquals(replaceAC, that.replaceAC) && Objects.equals(replaceInfos, that.replaceInfos);
+    }
 }

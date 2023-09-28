@@ -1,6 +1,8 @@
 package com.aldebran.text.similarity;
 
 import com.aldebran.text.ac.AC;
+import com.aldebran.text.util.CheckUtil;
+import com.aldebran.text.util.ContinuousSerialUtil;
 import com.aldebran.text.util.MMath;
 
 import java.io.*;
@@ -77,16 +79,16 @@ public class TextSimilaritySearch implements Serializable {
     /**
      * 存储结构
      */
-    public Map<String, Double> gramIdfMap = new HashMap<>();
+    public HashMap<String, Double> gramIdfMap = new HashMap<>();
 
     public String libName;
 
     // quick query
-    public Map<String, FullText> idTextMap = new HashMap<>();
+    public HashMap<String, FullText> idTextMap = new HashMap<>();
 
-    public Map<String, Set<String>> contentGramTextIdsMap = new HashMap<>();
+    public HashMap<String, Set<String>> contentGramTextIdsMap = new HashMap<>();
 
-    public Map<String, Set<String>> titleGramTextIdsMap = new HashMap<>();
+    public HashMap<String, Set<String>> titleGramTextIdsMap = new HashMap<>();
 
     public AC titleAC = new AC();
 
@@ -357,15 +359,19 @@ public class TextSimilaritySearch implements Serializable {
 //            System.out.printf("title: %s, init title score: %s, init content score: %s%n",
 //                    fullText.titleText.resultText, fullText.contentText.basicTextAvgIdf, fullText.titleText.basicTextAvgIdf);
 
-            if (Double.isNaN(fullText.contentText.basicTextAvgIdf)) {
-                System.out.println("content NaN");
-                System.out.println(fullText.contentText);
-            }
 
-            if (Double.isNaN(fullText.titleText.basicTextAvgIdf)) {
-                System.out.println("content NaN");
-                System.out.println(fullText.titleText);
-            }
+            CheckUtil.Assert(!Double.isNaN(fullText.contentText.basicTextAvgIdf)
+                    && !Double.isNaN(fullText.titleText.basicTextAvgIdf));
+
+//            if (Double.isNaN(fullText.contentText.basicTextAvgIdf)) {
+//                System.out.println("content NaN");
+//                System.out.println(fullText.contentText);
+//            }
+//
+//            if (Double.isNaN(fullText.titleText.basicTextAvgIdf)) {
+//                System.out.println("title NaN");
+//                System.out.println(fullText.titleText);
+//            }
 
             // 基于内容
             double thisContentAvgIdf = fullText.contentText.basicTextAvgIdf;
@@ -432,10 +438,10 @@ public class TextSimilaritySearch implements Serializable {
 
     public static File save(TextSimilaritySearch textLib, File outFile) throws IOException {
         try (FileOutputStream fO = new FileOutputStream(outFile);
-             BufferedOutputStream bO = new BufferedOutputStream(fO);
+             BufferedOutputStream bO = new BufferedOutputStream(fO, 1 * 1024 * 1024);
              ObjectOutputStream oO = new ObjectOutputStream(bO);
         ) {
-            oO.writeObject(textLib);
+            ContinuousSerialUtil.saveTextSimilaritySearch(oO, textLib, 10 * 10000);
         }
         return outFile;
     }
@@ -446,13 +452,12 @@ public class TextSimilaritySearch implements Serializable {
                 BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
                 ObjectInputStream objectInputStream = new ObjectInputStream(bufferedInputStream);
         ) {
-            return (TextSimilaritySearch) objectInputStream.readObject();
+            return ContinuousSerialUtil.loadTextSimilaritySearch(objectInputStream);
         }
     }
 
     // 列出所有文章，生成器方法
     public Iterable<FullText> listAll() {
-
 
         return new Iterable<FullText>() {
             @Override
@@ -558,5 +563,42 @@ public class TextSimilaritySearch implements Serializable {
         return statistics;
     }
 
+    // 仅用于测试，运行期间不调用
+    public boolean simpleEquals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TextSimilaritySearch that = (TextSimilaritySearch) o;
+        return CheckUtil.closeDouble(criticalContentHitCount, that.criticalContentHitCount)
+                && CheckUtil.closeDouble(criticalTitleHitCount, that.criticalTitleHitCount)
+                && CheckUtil.closeDouble(criticalScore, that.criticalScore)
+                && n == that.n && CheckUtil.closeDouble(contentK, that.contentK)
+                && CheckUtil.closeDouble(titleK, that.titleK)
+                && CheckUtil.closeDouble(hitGramsCountLogA, that.hitGramsCountLogA)
+                && CheckUtil.closeDouble(gramsCountLogA, that.gramsCountLogA)
+                && CheckUtil.closeDouble(idfGrowthK, that.idfGrowthK)
+                && CheckUtil.closeDouble(gramAvgIdf, that.gramAvgIdf)
+                && CheckUtil.closeDouble(gramMinIdf, that.gramMinIdf)
+                && CheckUtil.closeDouble(gramMaxIdf, that.gramMaxIdf)
+                && CheckUtil.closeDouble(maxTitleAvgIdf, that.maxTitleAvgIdf)
+                && CheckUtil.closeDouble(minTitleAvgIdf, that.minTitleAvgIdf)
+                && CheckUtil.closeDouble(avgTitleAvgIdf, that.avgTitleAvgIdf)
+                && CheckUtil.closeDouble(maxContentAvgIdf, that.maxContentAvgIdf)
+                && CheckUtil.closeDouble(minContentAvgIdf, that.minContentAvgIdf)
+                && CheckUtil.closeDouble(avgContentAvgIdf, that.avgContentAvgIdf)
+                && CheckUtil.closeDouble(titleIdfRate, that.titleIdfRate)
+                && CheckUtil.closeDouble(basicGrowthValue, that.basicGrowthValue)
+                && CheckUtil.closeDouble(titleGramsCountSum, that.titleGramsCountSum)
+                && CheckUtil.closeDouble(contentGramsCountSum, that.contentGramsCountSum)
+                && scoreCalculator.simpleEquals(that.scoreCalculator)
+                && avgIdfGrowthCalculator.simpleEquals(that.avgIdfGrowthCalculator)
+                && Objects.equals(libName, that.libName)
+                && Objects.equals(titleAC, that.titleAC)
+                && Objects.equals(contentAC, that.contentAC)
+                && Objects.equals(textPreprocess, that.textPreprocess)
+                && ((TextSimilaritySearch) o).idTextMap.size() == this.idTextMap.size() &&
+                ((TextSimilaritySearch) o).gramIdfMap.size() == this.gramIdfMap.size() &&
+                ((TextSimilaritySearch) o).contentGramTextIdsMap.size() == this.contentGramTextIdsMap.size() &&
+                ((TextSimilaritySearch) o).titleGramTextIdsMap.size() == this.titleGramTextIdsMap.size();
+    }
 
 }

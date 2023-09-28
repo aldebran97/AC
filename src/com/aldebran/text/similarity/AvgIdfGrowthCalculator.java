@@ -1,6 +1,9 @@
 package com.aldebran.text.similarity;
 
+import com.aldebran.text.util.CheckUtil;
+
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * 基础均匀线性增长 平均IDF增加值计算器
@@ -38,5 +41,16 @@ public class AvgIdfGrowthCalculator implements Serializable {
         this.gramMaxIdf = gramMaxIdf;
         this.titleIdfRate = titleIdfRate;
         this.idfGrowthK = idfGrowthK;
+    }
+
+    // 仅测试保存和加载时比较
+    public boolean simpleEquals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AvgIdfGrowthCalculator that = (AvgIdfGrowthCalculator) o;
+        return CheckUtil.closeDouble(basicGrowthValue, that.basicGrowthValue)
+                && CheckUtil.closeDouble(gramAvgIdf, that.gramAvgIdf)
+                && CheckUtil.closeDouble(gramMinIdf, that.gramMinIdf) && CheckUtil.closeDouble(gramMaxIdf, that.gramMaxIdf)
+                && CheckUtil.closeDouble(titleIdfRate, that.titleIdfRate) && CheckUtil.closeDouble(idfGrowthK, that.idfGrowthK);
     }
 }

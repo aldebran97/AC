@@ -2,7 +2,9 @@ package com.aldebran.text;
 
 import com.aldebran.text.ac.AC;
 import com.aldebran.text.ac.ACPlus;
+import com.aldebran.text.similarity.SimilaritySearchResult;
 import com.aldebran.text.similarity.TextSimilaritySearch;
+import com.aldebran.text.util.CheckUtil;
 
 import java.io.File;
 import java.util.Arrays;
@@ -18,48 +20,80 @@ public class TempTest {
 
     public static void main(String[] args) throws Exception {
         tryTextSimilaritySearch();
-//        trySave();
+//        acTest1();
+//        acTest2();
+//        acPlusTest();
     }
 
-    static void simpleTest1() {
-        AC trieTree = new AC();
-        trieTree.addWords(Arrays.asList("12348", "2344", "38"));
-        trieTree.update();
+    // AC基础测试1
+    static void acTest1() throws Exception {
+        AC ac = new AC();
 
-        trieTree.traverse_(str -> System.out.println(str));
+        // 添加若干词
+        ac.addWords(Arrays.asList("12348", "2344", "38"));
+        // 更新失配指针
+        ac.update();
 
-        System.out.println(trieTree.containsWord("12348"));
-        System.out.println(trieTree.containsWord("2344"));
-        System.out.println(trieTree.containsWord("23"));
-        System.out.println(trieTree.containsWord("38"));
-        System.out.println(trieTree.toWordsList());
+        // 遍历测试
+        ac.traverse(str -> System.out.println(str));
 
+        // 包含测试
+        System.out.println(ac.containsWord("12348"));
+        System.out.println(ac.containsWord("2344"));
+        System.out.println(ac.containsWord("23"));
+        System.out.println(ac.containsWord("38"));
 
-        System.out.println(trieTree.indexOf("0012343382344038"));
+        // 转词列表测试
+        System.out.println(ac.toWordsList());
+
+        // 匹配测试
+        System.out.println(ac.indexOf("0012343382344038"));
+
+        File acLibFile = new File("./test-ac");
+
+        // 导出测试
+        AC.save(ac, acLibFile);
+
+        // 导入测试
+        AC ac2 = AC.load(acLibFile);
+
+        // 验证ac库是否完全相同，CheckUtil.acEquals仅在测试使用，不要在正式环境上使用
+        System.out.println(CheckUtil.acEquals(ac2, ac));
+
     }
 
-    static void simpleTest2() {
-        AC trieTree = new AC();
-        trieTree.addWords(Arrays.asList("ABCABCABDABC", "BD", "CD"));
-        trieTree.update();
+    // AC基础测试2
+    static void acTest2() {
+        AC ac = new AC();
+        ac.addWords(Arrays.asList("ABCABCABDABC", "BD", "CD"));
+        ac.update();
 
-        trieTree.traverse_(str -> System.out.println(str));
+        ac.traverse_(str -> System.out.println(str));
 
-        System.out.println(trieTree.indexOf("00ABCAABDABDABCD"));
+        System.out.println(ac.indexOf("00ABCAABDABDABCD"));
     }
 
-    static void simpleTest3() {
-        AC trieTree = new AC();
-        trieTree.addWords(Arrays.asList("ABCEAFBABCD", "EA", "FB", "F", "B"));
-        trieTree.update();
+    // ACPlus测试，用于处理含有包含关系的词库
+    static void acPlusTest() throws Exception {
+        AC ac = new AC();
+        ac.addWords(Arrays.asList("ABCEAFBABCD", "EA", "FB", "F", "B")); // 词库含有包含关系
+        ac.update();
 
-        System.out.println(trieTree.indexOf("ABCEAFBABCQEA"));
+        System.out.println(ac.indexOf("ABCEAFBABCQEA")); // AC不能正确处理，需要使用ACPlus
 
-        trieTree = new ACPlus();
-        trieTree.addWords(Arrays.asList("ABCEAFBABCD", "EA", "FB", "F", "B"));
-        trieTree.update();
+        AC acPlus = new ACPlus();
+        acPlus.addWords(Arrays.asList("ABCEAFBABCD", "EA", "FB", "F", "B"));
+        acPlus.update();
 
-        System.out.println(trieTree.indexOf("ABCEAFBABCQEA"));
+        System.out.println(acPlus.indexOf("ABCEAFBABCQEA"));
+
+        File acLibFile = new File("./test-ac");
+
+        ACPlus.save(acPlus, acLibFile);
+
+        AC ac2 = ACPlus.load(acLibFile); // 加载ACPlus库应该用ACPlus.load导入，不能用AC.load
+
+        System.out.println(CheckUtil.acEquals(ac2, acPlus)); // CheckUtil.acEquals仅在测试使用，不要在正式环境上使用
     }
 
 
@@ -100,46 +134,17 @@ public class TempTest {
 
         textSimilaritySearch.update();
 
-        System.out.println(textSimilaritySearch.similaritySearch(
+        for (SimilaritySearchResult result : textSimilaritySearch.similaritySearch(
                 "《梦游天姥吟留别》作于李白出翰林之后。唐玄宗天宝三载（744），李白在长安受到权贵的排挤，被放出京，返回东鲁（在今山东）家园。" +
-                        "辛弃疾的《水调歌头》在此之后。", 10));
-    }
-
-    static void trySave() throws Exception {
-
-        TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch(
-                3,
-                3,
-                0.5,
-                1,
-                2,
-                2,
-                200,
-                10,
-                2,
-                "test");
-
-        textSimilaritySearch.textPreprocess.loadReplaceMapFromFile("./replace.txt");
-
-        textSimilaritySearch.addText(text1, title1, "1", 1);
-
-        textSimilaritySearch.addText(text2, title2, "2", 1);
-
-        textSimilaritySearch.addText(text3, title3, "3", 1);
-
-        textSimilaritySearch.update();
+                        "辛弃疾的《水调歌头》在此之后。", 10)) {
+            System.out.printf("title: %s, score: %s, text: %s, id: %s%n", result.title, result.score, result.text, result.id);
+        }
 
         File outFile = TextSimilaritySearch.save(textSimilaritySearch, new File("./test-lib"));
 
-        System.out.println(outFile.getAbsolutePath());
+        TextSimilaritySearch textSimilaritySearch2 = TextSimilaritySearch.load(outFile);
 
-        textSimilaritySearch = TextSimilaritySearch.load(outFile);
-
-        System.out.println(textSimilaritySearch.queryById("1"));
-
-        System.out.println(textSimilaritySearch.similaritySearch(
-                "《梦游天姥吟留别》作于李白出翰林之后。唐玄宗天宝三载（744），李白在长安受到权贵的排挤，被放出京，返回东鲁（在今山东）家园。" +
-                        "辛弃疾的《水调歌头》在此之后。", 10));
+        System.out.println(textSimilaritySearch.simpleEquals(textSimilaritySearch2));
     }
 
 }

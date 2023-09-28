@@ -1,6 +1,8 @@
 package com.aldebran.text.ac;
 
-import java.io.Serializable;
+import com.aldebran.text.util.ContinuousSerialUtil;
+
+import java.io.*;
 import java.util.List;
 
 /**
@@ -19,6 +21,15 @@ public class ACPlus extends AC implements Serializable {
                 results.add(new MatchResult(find.word, p - find.word.length()));
             }
             find = find.mismatchPointer;
+        }
+    }
+    
+    public static ACPlus load(File inFile) throws Exception {
+        try (FileInputStream fileInputStream = new FileInputStream(inFile);
+             BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream, 1 * 1024 * 1024);
+             ObjectInputStream objectInputStream = new ObjectInputStream(bufferedInputStream);
+        ) {
+            return ContinuousSerialUtil.loadACPlus(objectInputStream);
         }
     }
 }

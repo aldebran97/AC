@@ -29,4 +29,6 @@ out2
 
 *.iml
 
-test-lib
+test-lib*
+
+test-ac*

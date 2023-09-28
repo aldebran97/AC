@@ -1,16 +1,22 @@
-"""
-python调用相似检索例子
-"""
+# ngram + AC自动机为基础实现的词库检索、文本相似检索
 
+# python代码说明
+
+### 1. 导入依赖 + 准备工作
+
+
+CLASSPATH中指定jar路径，指定JAVA_HOME
+
+```shell
 import os
 
 os.environ['CLASSPATH'] = r"C:\Users\aldebran\user_dir\code\AC\out2\AC.jar"
-os.environ['JAVA_HOME'] = r"D:\user_dir\program_files\graalvm-jdk-21+35.1"
+os.environ['JAVA_HOME'] = r"D:\Program Files\Java\jdk-1.8\bin"
 
 import jnius_config
 
-# 指定了堆内存1G，栈内存256M。根据文章数量和文章长度调整。（文章数量对内存的消耗比文章长度大）
-jnius_config.add_options('-Xms1g', '-Xmx1g', '-Xss256m')
+# 指定了堆内存2G，栈内存1024M。根据文章数量和文章长度调整。（文章数量对内存的影响比文章长度大）
+jnius_config.add_options('-Xms2g', '-Xmx2g', '-Xss1024m')
 
 from jnius import autoclass
 
@@ -20,25 +26,43 @@ TextSimilaritySearchClass = autoclass('com.aldebran.text.similarity.TextSimilari
 ARRAY_LIST_CLASS = autoclass('java.util.ArrayList')
 FILE_CLASS = autoclass('java.io.File')
 
-
+# 定义了Java列表
 def j_list(l: list):
     j_list_obj = ARRAY_LIST_CLASS()
     for e in l: j_list_obj.add(e)
     return j_list_obj
+```
+
+### 2. 海量词库检索
 
 
-ac = AC_CLASS()
-ac.addWords(j_list(['word1', 'word2', 'word3']))
-ac.update()
+```shell
+ac = AC_CLASS() # 如果您的词库有包含关系，请用AC_PLUS_CLASS
+ac.addWords(j_list(['word1', 'word2', 'word3'])) # 插入若干词
+ac.update() # 更新失配指针，首次必须调用。之后词库更新不宜频繁调用，应在恰当的时机调用（比如累计追加数量到达阈值，或者间隔时间到达阈值）。
+# 词库匹配
 for mr in ac.indexOf("001word1002word0003word2"):
     print('index:', mr.index, 'word:', mr.word)
-
+    
 ac_lib_file = FILE_CLASS("./test-ac-py")
 
-AC_CLASS.save(ac,ac_lib_file)
+AC_CLASS.save(ac,ac_lib_file) # 保存库
 
-ac = AC_CLASS.load(ac_lib_file)
+ac = AC_CLASS.load(ac_lib_file) # 加载库，如果您用了AC_PLUS_CLASS，请用AC_PLUS_CLASS.load
+```
 
+输出
+
+```text
+index: 3 word: word1
+index: 19 word: word2
+```
+
+### 2. 文本检索，相似检索
+
+##### 插入查询用法
+
+```shell
 lib = TextSimilaritySearchClass(
     3,  # criticalContentHitCount，临界情况，期望的内容命中Gram个数
     3,  # criticalTitleHitCount，临界情况，期望的标题命中Gram个数
@@ -82,7 +106,6 @@ lib.addText(text3, title3, "3", 1)
 # 功能为：更新适配指针、统计指标和score计算器
 lib.update()
 
-# 相似检索
 for result in lib.similaritySearch(
         """《梦游天姥吟留别》作于李白出翰林之后。唐玄宗天宝三载（744），李白在长安受到权贵的排挤，被放出京，返回东鲁（在今山东）家园。
         辛弃疾的《水调歌头》在此之后。
@@ -90,8 +113,20 @@ for result in lib.similaritySearch(
         10  # top_k
 ):
     print(f'id :{result.id}, score: {result.score}, title: {result.title}, text: {result.text}')
+```
 
-# 修改参数
+输出
+
+```text
+id :1, score: 0.6464106850592721, title: 《梦游天姥吟留别》, text: 《梦游天姥吟留别》是唐代大诗人李白的诗作。这是一首记梦诗，也是一首游仙诗。此诗以记梦为由，抒写了对光明、自由的渴求，对黑暗现实的不满，表现了诗人蔑视权贵、不卑不屈的叛逆精神。
+id :2, score: 0.5641475960385378, title: 《水调歌头·文字觑天巧》, text: 《水调歌头·文字觑天巧》是南宋诗人辛弃疾创作的一首词。上片写李子永家亭榭风流华美，有浓郁的田园风味，但不能因此不忧虑世事。
+```
+
+### 3. 重定义参数
+
+在库建立好后，参数仍旧可调整
+
+```shell
 lib.changeArgs(
     3,  # criticalContentHitCount，临界情况，期望的内容命中Gram个数
     3,  # criticalTitleHitCount，临界情况，期望的标题命中Gram个数
@@ -102,10 +137,21 @@ lib.changeArgs(
     200,  # gramsCountLogA，低长度文本有略微的领先优势，此值越小，低长度文本优势越明显
     10  # idfGrowthK, gram得分区分度，此值越大，得分梯度越大
 )
+```
 
-# 导出库
-lib_file = FILE_CLASS("./test-lib-py")  # 替换为自己的路径
-TextSimilaritySearchClass.save(lib, lib_file)
+### 4. 库的保存和加载
 
-# 导入库
-lib = TextSimilaritySearchClass.load(lib_file)
+#### 保存
+
+```shell
+outFile = FILE_CLASS("./test-lib");  # 替换为自己的路径
+TextSimilaritySearchClass.save(lib, outFile)
+```
+
+#### 加载
+
+
+```shell
+inFile = FILE_CLASS("./test-lib")  # 替换为自己的路径
+lib = TextSimilaritySearchClass.load(inFile)
+```
