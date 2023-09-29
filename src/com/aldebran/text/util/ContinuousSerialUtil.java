@@ -4,6 +4,7 @@ import com.aldebran.text.ac.AC;
 import com.aldebran.text.ac.ACPlus;
 import com.aldebran.text.similarity.FullText;
 import com.aldebran.text.similarity.TextSimilaritySearch;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -41,70 +42,60 @@ public class ContinuousSerialUtil {
         objectOutputStream.writeObject(obj);
     }
 
-    // 保存HashMap
-//    public static void saveHashMap(ObjectOutputStream objectOutputStream, HashMap map, long unitSize) throws IOException {
-//        if (map.size() < unitSize) {
-//            objectOutputStream.writeObject(HASH_MAP_START);
-//            save(objectOutputStream, map);
-//            objectOutputStream.writeObject(HASH_MAP_END);
-//        } else {
-//            objectOutputStream.writeObject(HASH_MAP_START);
-//            HashMap thisMap = new HashMap();
-//            for (Object k : map.entrySet()) {
-//                if (thisMap.size() >= unitSize) {
-//                    save(objectOutputStream, thisMap);
-//                    thisMap.clear();
-//                }
-//                thisMap.put(k, map.get(k));
-//            }
-//            if (!thisMap.isEmpty()) {
-//                save(objectOutputStream, thisMap);
-//            }
-//            objectOutputStream.writeObject(HASH_MAP_END);
-//
-//        }
-//    }
-
     public static void saveHashMap(ObjectOutputStream objectOutputStream, HashMap map, long unitSize) throws IOException {
         objectOutputStream.writeObject(HASH_MAP_START);
-        List result = hashMapToList(map);
-        ArrayList keys = (ArrayList) result.get(0);
-        ArrayList values = (ArrayList) result.get(1);
-        saveArrayList(objectOutputStream, keys, unitSize);
-        saveArrayList(objectOutputStream, values, unitSize);
+        IterableInfo iterableInfo = hashMapToIterableInfo(map);
+        saveIterable(objectOutputStream, iterableInfo, unitSize);
         objectOutputStream.writeObject(HASH_MAP_END);
     }
 
-    public static List hashMapToList(HashMap hashMap) {
-        ArrayList keys = new ArrayList();
-        ArrayList values = new ArrayList();
-        for (Object e : hashMap.entrySet()) {
-            Map.Entry eO = (Map.Entry) e;
-            keys.add(eO.getKey());
-            values.add(eO.getValue());
-        }
-        return Arrays.asList(keys, values);
+    public static IterableInfo hashMapToIterableInfo(HashMap hashMap) {
+
+        IterableInfo result = new IterableInfo();
+        result.size = hashMap.size();
+        result.iterable = new Iterable() {
+
+            Iterator<Map.Entry> entries = hashMap.entrySet().iterator();
+
+            @NotNull
+            @Override
+            public Iterator iterator() {
+                return new Iterator() {
+                    @Override
+                    public boolean hasNext() {
+                        return entries.hasNext();
+                    }
+
+                    @Override
+                    public Object next() {
+                        Map.Entry entry = entries.next();
+                        ArrayList list = new ArrayList();
+                        list.add(entry.getKey());
+                        list.add(entry.getValue());
+                        return list;
+                    }
+                };
+            }
+        };
+
+        return result;
     }
 
-
-    public static HashMap kvListToMap(ArrayList keys, ArrayList values) {
-        HashMap hashMap = new HashMap(keys.size());
-        for (int i = 0; i < keys.size(); i++) {
-            hashMap.put(keys.get(i), values.get(i));
-        }
-        return hashMap;
-    }
 
     // 保存ArrayList
-    public static void saveArrayList(ObjectOutputStream objectOutputStream, ArrayList list, long unitSize) throws IOException {
-        if (list.size() < unitSize) {
+    public static void saveIterable(ObjectOutputStream objectOutputStream, IterableInfo iterableInfo, long unitSize) throws IOException {
+        if (iterableInfo.size < unitSize) {
             objectOutputStream.writeObject(ARRAY_LIST_START);
-            save(objectOutputStream, list);
+            ArrayList thisList = new ArrayList();
+            for (Object obj : iterableInfo.iterable) {
+                thisList.add(obj);
+            }
+            save(objectOutputStream, thisList);
             objectOutputStream.writeObject(ARRAY_LIST_END);
         } else {
             objectOutputStream.writeObject(ARRAY_LIST_START);
             ArrayList thisList = new ArrayList();
-            for (Object obj : list) {
+            for (Object obj : iterableInfo.iterable) {
                 if (thisList.size() >= unitSize) {
                     save(objectOutputStream, thisList);
                     thisList = new ArrayList();
@@ -118,38 +109,31 @@ public class ContinuousSerialUtil {
         }
     }
 
-    // 读HashMap
-//    public static HashMap readHashMap(ObjectInputStream objectInputStream) throws IOException, ClassNotFoundException {
-//        CheckUtil.Assert(HASH_MAP_START.equals(objectInputStream.readObject()));
-//
-//        HashMap resultMap = new HashMap();
-//        Object readObject;
-//        while ((readObject = objectInputStream.readObject()) != null) {
-//            if (readObject instanceof String) {
-//                CheckUtil.Assert(HASH_MAP_END.equals(readObject));
-//                break;
-//            } else {
-//                assert readObject instanceof HashMap;
-//                HashMap thisMap = ((HashMap) readObject);
-//                resultMap.putAll(thisMap);
-//            }
-//        }
-//        return resultMap;
-//    }
-
     public static HashMap readHashMap(ObjectInputStream objectInputStream) throws IOException, ClassNotFoundException {
         CheckUtil.Assert(HASH_MAP_START.equals(objectInputStream.readObject()));
-        ArrayList keys = readArrayList(objectInputStream);
-        ArrayList values = readArrayList(objectInputStream);
-        HashMap resultMap = kvListToMap(keys, values);
+        HashMap resultMap = new HashMap();
+        readArrayList_(objectInputStream, new Consumer<ArrayList>() {
+            @Override
+            public void accept(ArrayList arrayList) {
+                resultMap.put(arrayList.get(0), arrayList.get(1));
+            }
+        });
         CheckUtil.Assert(HASH_MAP_END.equals(objectInputStream.readObject()));
         return resultMap;
     }
 
     // 读ArrayList
     public static ArrayList readArrayList(ObjectInputStream objectInputStream) throws IOException, ClassNotFoundException {
-        CheckUtil.Assert(ARRAY_LIST_START.equals(objectInputStream.readObject()));
         ArrayList list = new ArrayList();
+        readArrayList_(objectInputStream, object -> {
+            System.out.println("read: " + object);
+            list.add(object);
+        });
+        return list;
+    }
+
+    public static void readArrayList_(ObjectInputStream objectInputStream, Consumer consumer) throws IOException, ClassNotFoundException {
+        CheckUtil.Assert(ARRAY_LIST_START.equals(objectInputStream.readObject()));
         Object readObject;
         while ((readObject = objectInputStream.readObject()) != null) {
             if (readObject instanceof String) {
@@ -158,10 +142,12 @@ public class ContinuousSerialUtil {
             } else {
                 assert readObject instanceof ArrayList;
                 ArrayList thisList = ((ArrayList) readObject);
-                list.addAll(thisList);
+                for (Object o : thisList) {
+                    consumer.accept(o);
+                }
+
             }
         }
-        return list;
     }
 
 
@@ -193,9 +179,15 @@ public class ContinuousSerialUtil {
 //        System.out.println("write idParentIdMap: " + idParentIdMap);
 //        System.out.println("write idMissIdMap: " + idMissIdMap);
         saveHashMap(objectOutputStream, idNodeMap, unitSize);
+        idNodeMap.clear();
+        System.gc();
 //        saveHashMap(objectOutputStream, idChildIdsMap, unitSize);
         saveHashMap(objectOutputStream, idParentIdMap, unitSize);
+        idParentIdMap.clear();
+        System.gc();
         saveHashMap(objectOutputStream, idMissIdMap, unitSize);
+        idMissIdMap.clear();
+        System.gc();
         objectOutputStream.writeLong(ac.nextId);
 
         objectOutputStream.writeObject(AC_END);
@@ -310,10 +302,10 @@ public class ContinuousSerialUtil {
         saveHashMap(objectOutputStream, lib.gramIdfMap, unitSize);
         saveHashMap(objectOutputStream, lib.idTextMap, unitSize);
 
-        saveArrayList(objectOutputStream, gramTextIdsFlatten(lib.contentGramTextIdsMap), unitSize);
+        saveIterable(objectOutputStream, gramTextIdsFlatten(lib.contentGramTextIdsMap), unitSize);
 //        saveHashMap(objectOutputStream, lib.contentGramTextIdsMap, unitSize);
 
-        saveArrayList(objectOutputStream, gramTextIdsFlatten(lib.titleGramTextIdsMap), unitSize);
+        saveIterable(objectOutputStream, gramTextIdsFlatten(lib.titleGramTextIdsMap), unitSize);
 //        saveHashMap(objectOutputStream, lib.titleGramTextIdsMap, unitSize);
 
         saveAC(objectOutputStream, lib.titleAC, unitSize);
@@ -322,18 +314,55 @@ public class ContinuousSerialUtil {
         objectOutputStream.writeObject(TextSimilaritySearch_END);
     }
 
-    public static ArrayList gramTextIdsFlatten(HashMap<String, Set<String>> gramTextIdsMap) {
-        ArrayList list = new ArrayList();
-        for (Map.Entry<String, Set<String>> entry : gramTextIdsMap.entrySet()) {
-            String gram = entry.getKey();
-            for (String textId : entry.getValue()) {
-                ArrayList pair = new ArrayList();
-                pair.add(gram);
-                pair.add(textId);
-                list.add(pair);
-            }
+    public static IterableInfo gramTextIdsFlatten(HashMap<String, Set<String>> gramTextIdsMap) {
+        IterableInfo iterableInfo = new IterableInfo();
+        iterableInfo.size = 0;
+        for (Set<String> value : gramTextIdsMap.values()) {
+            iterableInfo.size += value.size();
         }
-        return list;
+//        System.out.println("gramTextIdsFlatten iterableInfo size: " + iterableInfo.size);
+
+        Iterator<Map.Entry<String, Set<String>>> entryIterator = gramTextIdsMap.entrySet().iterator();
+        iterableInfo.iterable = new Iterable() {
+
+            int c = 0;
+
+            List<String> vs = null;
+
+            int vs_c = 0;
+
+            String key = null;
+
+            @NotNull
+            @Override
+            public Iterator iterator() {
+                return new Iterator() {
+                    @Override
+                    public boolean hasNext() {
+                        return c < iterableInfo.size;
+                    }
+
+                    @Override
+                    public Object next() {
+                        if (key == null || vs == null || vs_c >= vs.size()) {
+                            Map.Entry<String, Set<String>> entry = entryIterator.next();
+                            key = entry.getKey();
+                            vs = new ArrayList<>();
+                            vs.addAll(entry.getValue());
+                            vs_c = 0;
+                        }
+                        ArrayList thisResult = new ArrayList();
+                        thisResult.add(key);
+                        thisResult.add(vs.get(vs_c++));
+                        c++;
+//                        System.out.printf("gramTextIdsFlatten yield, kv: %s%n", thisResult);
+                        return thisResult;
+                    }
+                };
+            }
+        };
+
+        return iterableInfo;
     }
 
     public static HashMap<String, Set<String>> flattenToGramTextIds(ArrayList list) {
@@ -352,6 +381,26 @@ public class ContinuousSerialUtil {
         return result;
     }
 
+    public static HashMap<String, Set<String>> flattenToGramTextIds(ObjectInputStream objectInputStream) throws IOException, ClassNotFoundException {
+        HashMap<String, Set<String>> result = new HashMap<>();
+        readArrayList_(objectInputStream, new Consumer() {
+            @Override
+            public void accept(Object o) {
+                ArrayList pair = (ArrayList) o;
+                String gram = (String) pair.get(0);
+                String textId = (String) pair.get(1);
+                Set<String> textIds = result.get(gram);
+                if (textIds == null) {
+                    textIds = new HashSet<>();
+                    result.put(gram, textIds);
+                }
+                textIds.add(textId);
+            }
+        });
+
+        return result;
+    }
+
     // 加载相似库
     public static TextSimilaritySearch loadTextSimilaritySearch(ObjectInputStream objectInputStream) throws IOException, ClassNotFoundException {
         CheckUtil.Assert(TextSimilaritySearch_START.equals(objectInputStream.readObject()));
@@ -360,9 +409,11 @@ public class ContinuousSerialUtil {
         TextSimilaritySearch lib = (TextSimilaritySearch) obj;
         lib.gramIdfMap = readHashMap(objectInputStream);
         lib.idTextMap = readHashMap(objectInputStream);
-        lib.contentGramTextIdsMap = flattenToGramTextIds(readArrayList(objectInputStream));
+//        lib.contentGramTextIdsMap = flattenToGramTextIds(readArrayList(objectInputStream));
+        lib.contentGramTextIdsMap = flattenToGramTextIds(objectInputStream);
 //        lib.contentGramTextIdsMap = readHashMap(objectInputStream);
-        lib.titleGramTextIdsMap = flattenToGramTextIds(readArrayList(objectInputStream));
+//        lib.titleGramTextIdsMap = flattenToGramTextIds(readArrayList(objectInputStream));
+        lib.titleGramTextIdsMap = flattenToGramTextIds(objectInputStream);
 //        lib.titleGramTextIdsMap = readHashMap(objectInputStream);
         lib.titleAC = loadAC(objectInputStream);
         lib.contentAC = loadAC(objectInputStream);

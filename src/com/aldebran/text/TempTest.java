@@ -145,6 +145,12 @@ public class TempTest {
         TextSimilaritySearch textSimilaritySearch2 = TextSimilaritySearch.load(outFile);
 
         System.out.println(textSimilaritySearch.simpleEquals(textSimilaritySearch2));
+
+//        for (SimilaritySearchResult result : textSimilaritySearch2.similaritySearch(
+//                "《梦游天姥吟留别》作于李白出翰林之后。唐玄宗天宝三载（744），李白在长安受到权贵的排挤，被放出京，返回东鲁（在今山东）家园。" +
+//                        "辛弃疾的《水调歌头》在此之后。", 10)) {
+//            System.out.printf("title: %s, score: %s, text: %s, id: %s%n", result.title, result.score, result.text, result.id);
+//        }
     }
 
 }

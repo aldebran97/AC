@@ -441,7 +441,7 @@ public class TextSimilaritySearch implements Serializable {
              BufferedOutputStream bO = new BufferedOutputStream(fO, 1 * 1024 * 1024);
              ObjectOutputStream oO = new ObjectOutputStream(bO);
         ) {
-            ContinuousSerialUtil.saveTextSimilaritySearch(oO, textLib, 10 * 10000);
+            ContinuousSerialUtil.saveTextSimilaritySearch(oO, textLib, 1 * 1000);
         }
         return outFile;
     }
