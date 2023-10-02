@@ -82,6 +82,10 @@ textSimilaritySearch.addText(text3,title3,"3",1);
 // 功能为：更新适配指针、统计指标和score计算器
 textSimilaritySearch.update();
 
+// 如果你想支持多线程检索，设置lib.allowMultiThreadsSearch为true。
+// 只有文章数量大于lib.searchDocsUnit才会启用多线程。
+// lib.allowMultiThreadsSearch = true;
+
 // 相似查询
 System.out.println(textSimilaritySearch.similaritySearch(
         "《梦游天姥吟留别》作于李白出翰林之后。唐玄宗天宝三载（744），李白在长安受到权贵的排挤，被放出京，返回东鲁（在今山东）家园。"+

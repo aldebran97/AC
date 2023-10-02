@@ -4,9 +4,13 @@ import com.aldebran.text.ac.AC;
 import com.aldebran.text.util.CheckUtil;
 import com.aldebran.text.util.ContinuousSerialUtil;
 import com.aldebran.text.util.MMath;
+import kotlin.jvm.Transient;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.Collectors;
 
 /**
  * 文本相似搜索
@@ -96,6 +100,12 @@ public class TextSimilaritySearch implements Serializable {
 
     public TextPreprocess textPreprocess = new TextPreprocess();
 
+    // 多线程配置，不会持久化
+    public transient int searchDocsUnit = 30000;
+
+    public transient boolean allowMultiThreadsSearch = false;
+
+    public transient boolean allowMultiThreadsLoadSave = false;
 
     public TextSimilaritySearch(double criticalContentHitCount,
                                 double criticalTitleHitCount,
@@ -289,8 +299,17 @@ public class TextSimilaritySearch implements Serializable {
 
     }
 
-
     public List<SimilaritySearchResult> similaritySearch(String text, int topK) {
+        double textsCount = textsCount() * 0.1;
+        if (textsCount <= searchDocsUnit || !allowMultiThreadsSearch) {
+            return similaritySearchSingleThread(text, topK);
+        } else {
+            return similaritySearchMultipleThread(text, topK);
+        }
+    }
+
+
+    private List<SimilaritySearchResult> similaritySearchSingleThread(String text, int topK) {
 
         List<SimilaritySearchResult> result = new LinkedList<>();
 
@@ -427,6 +446,290 @@ public class TextSimilaritySearch implements Serializable {
                 priorityQueue.add(similaritySearchResult);
             }
 
+        }
+
+        while (!priorityQueue.isEmpty()) {
+            result.add(0, priorityQueue.poll());
+        }
+
+        return result;
+    }
+
+
+    private List<SimilaritySearchResult> similaritySearchMultipleThread(String text, int topK) {
+        double textsCount = textsCount() * 0.1;
+        int startThreadsNum = (int) Math.ceil(textsCount / searchDocsUnit);
+
+        List<SimilaritySearchResult> result = new LinkedList<>();
+
+        BasicText basicText = textPreprocess.textProcess(text);
+
+        String gPString = String.join("", textPreprocess.textToGramUnits(basicText));
+
+        List<AC.MatchResult> contentMRs = contentAC.indexOf(gPString);
+        List<AC.MatchResult> titleMRs = titleAC.indexOf(gPString);
+
+        Map<String, TextMatchInfo> idMatchInfoMap = new HashMap<>();
+
+        int contentMRsSt = 0;
+        int contentMRsUnit = (int) Math.ceil(contentMRs.size() * 1.0 / startThreadsNum);
+        int titleMRsSt = 0;
+        int titleMRsUnit = (int) Math.ceil(titleMRs.size() * 1.0 / startThreadsNum);
+
+        List<Thread> threads = new ArrayList<>();
+
+        // 处理内容
+        while (contentMRsSt < contentMRs.size()) {
+
+            int i = contentMRsSt;
+            int j = contentMRsSt + contentMRsUnit;
+            if (j > contentMRs.size()) {
+                j = contentMRs.size();
+            }
+            int end = j;
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Map<String, TextMatchInfo> thisIdMatchInfoMap = new HashMap<>();
+                    for (int index = i; index < end; index++) {
+                        AC.MatchResult mr = contentMRs.get(index);
+                        String hitGram = mr.word;
+                        Set<String> textIds = contentGramTextIdsMap.get(hitGram);
+                        if (textIds != null) {
+                            for (String textId : textIds) {
+                                TextMatchInfo textMatchInfo = thisIdMatchInfoMap.get(textId);
+                                if (textMatchInfo == null) {
+                                    textMatchInfo = new TextMatchInfo();
+                                    textMatchInfo.text = idTextMap.get(textId);
+                                    thisIdMatchInfoMap.put(textId, textMatchInfo);
+                                }
+                                Integer c = textMatchInfo.hitContentGramCountMap.get(hitGram);
+                                if (c == null) {
+                                    c = 0;
+                                }
+                                c++;
+                                textMatchInfo.hitContentGramCountMap.put(hitGram, c);
+                            }
+                        }
+                    }
+                    // combine
+                    synchronized (idMatchInfoMap) {
+                        for (Map.Entry<String, TextMatchInfo> entry : thisIdMatchInfoMap.entrySet()) {
+                            String textId = entry.getKey();
+                            TextMatchInfo thisTextMatchInfo = entry.getValue();
+                            TextMatchInfo textMatchInfo = idMatchInfoMap.get(textId);
+                            if (textMatchInfo == null) {
+                                idMatchInfoMap.put(textId, thisTextMatchInfo);
+                            } else {
+                                for (Map.Entry<String, Integer> stringIntegerEntry : thisTextMatchInfo.hitContentGramCountMap.entrySet()) {
+                                    String hitGram = stringIntegerEntry.getKey();
+                                    int thisC = stringIntegerEntry.getValue();
+                                    Integer c = textMatchInfo.hitContentGramCountMap.get(hitGram);
+                                    if (c == null) {
+                                        c = 0;
+                                    }
+                                    c += thisC;
+                                    textMatchInfo.hitContentGramCountMap.put(hitGram, c);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            threads.add(thread);
+            thread.start();
+            contentMRsSt = end;
+        }
+
+        // 处理标题
+        while (titleMRsSt < titleMRs.size()) {
+            int i = titleMRsSt;
+            int j = titleMRsSt + titleMRsUnit;
+            if (j > titleMRs.size()) {
+                j = titleMRs.size();
+            }
+            int end = j;
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Map<String, TextMatchInfo> thisIdMatchInfoMap = new HashMap<>();
+                    for (int index = i; index < end; index++) {
+                        AC.MatchResult mr = titleMRs.get(index);
+                        String hitGram = mr.word;
+                        Set<String> textIds = titleGramTextIdsMap.get(hitGram);
+                        if (textIds != null) {
+                            for (String textId : textIds) {
+                                TextMatchInfo textMatchInfo = thisIdMatchInfoMap.get(textId);
+                                if (textMatchInfo == null) {
+                                    textMatchInfo = new TextMatchInfo();
+                                    textMatchInfo.text = idTextMap.get(textId);
+                                    thisIdMatchInfoMap.put(textId, textMatchInfo);
+                                }
+                                Integer c = textMatchInfo.hitTitleGramCountMap.get(hitGram);
+                                if (c == null) {
+                                    c = 0;
+                                }
+                                c++;
+                                textMatchInfo.hitTitleGramCountMap.put(hitGram, c);
+                            }
+                        }
+                    }
+                    // combine
+                    synchronized (idMatchInfoMap) {
+                        for (Map.Entry<String, TextMatchInfo> entry : thisIdMatchInfoMap.entrySet()) {
+                            String textId = entry.getKey();
+                            TextMatchInfo thisTextMatchInfo = entry.getValue();
+                            TextMatchInfo textMatchInfo = idMatchInfoMap.get(textId);
+                            if (textMatchInfo == null) {
+                                idMatchInfoMap.put(textId, thisTextMatchInfo);
+                            } else {
+                                for (Map.Entry<String, Integer> stringIntegerEntry : thisTextMatchInfo.hitTitleGramCountMap.entrySet()) {
+                                    String hitGram = stringIntegerEntry.getKey();
+                                    int thisC = stringIntegerEntry.getValue();
+                                    Integer c = textMatchInfo.hitTitleGramCountMap.get(hitGram);
+                                    if (c == null) {
+                                        c = 0;
+                                    }
+                                    c += thisC;
+                                    textMatchInfo.hitTitleGramCountMap.put(hitGram, c);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            );
+            threads.add(thread);
+            thread.start();
+            titleMRsSt = end;
+        }
+
+        // 等待数量统计线程结束
+        for (Thread thread : threads) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        threads.clear();
+
+        // 相似匹配
+        PriorityQueue<SimilaritySearchResult> priorityQueue = new PriorityQueue<>(new Comparator<SimilaritySearchResult>() {
+            @Override
+            public int compare(SimilaritySearchResult o1, SimilaritySearchResult o2) {
+                return Double.compare(o1.score, o2.score);
+            }
+        });
+
+        List<TextMatchInfo> textMatchInfos = idMatchInfoMap.values().stream().collect(Collectors.toList());
+        int textMatchInfoUnit = (int) Math.ceil(textMatchInfos.size() * 1.0 / startThreadsNum);
+        int textMatchInfoSt = 0;
+        while (textMatchInfoSt < textMatchInfos.size()) {
+            int i = textMatchInfoSt;
+            int j = textMatchInfoSt + textMatchInfoUnit;
+            if (j > textMatchInfos.size()) {
+                j = textMatchInfos.size();
+            }
+            int end = j;
+
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    PriorityQueue<SimilaritySearchResult> thisPriorityQueue = new PriorityQueue<>(new Comparator<SimilaritySearchResult>() {
+                        @Override
+                        public int compare(SimilaritySearchResult o1, SimilaritySearchResult o2) {
+                            return Double.compare(o1.score, o2.score);
+                        }
+                    });
+
+                    for (int index = i; index < end; index++) {
+                        TextMatchInfo textMatchInfo = textMatchInfos.get(index);
+                        FullText fullText = textMatchInfo.text;
+                        CheckUtil.Assert(!Double.isNaN(fullText.contentText.basicTextAvgIdf)
+                                && !Double.isNaN(fullText.titleText.basicTextAvgIdf));
+                        // 基于内容
+                        double thisContentAvgIdf = fullText.contentText.basicTextAvgIdf;
+
+                        for (String hitContentGram : textMatchInfo.hitContentGramCountMap.keySet()) {
+                            int gTextGramsCount = textMatchInfo.hitContentGramCountMap.get(hitContentGram);
+                            int libContentGramsCount = fullText.contentText.gramCountMap.get(hitContentGram);
+                            double idf = gramIdfMap.get(hitContentGram);
+                            double this_growth_value = avgIdfGrowthCalculator.calc(idf, false);
+
+                            thisContentAvgIdf += MMath.log(hitGramsCountLogA, libContentGramsCount + hitGramsCountLogA - 1)
+                                    * MMath.log(hitGramsCountLogA, gTextGramsCount + hitGramsCountLogA - 1) * this_growth_value;
+                        }
+
+
+                        // 基于标题
+                        double thisTitleAvgIdf = fullText.titleText.basicTextAvgIdf * titleIdfRate;
+
+                        for (String hitTitleGram : textMatchInfo.hitTitleGramCountMap.keySet()) {
+                            int gTextGramsCount = textMatchInfo.hitTitleGramCountMap.get(hitTitleGram);
+                            int libTitleGramsCount = fullText.titleText.gramCountMap.get(hitTitleGram);
+                            double idf = gramIdfMap.get(hitTitleGram);
+
+                            double this_growth_value = avgIdfGrowthCalculator.calc(idf, true);
+
+                            thisTitleAvgIdf += MMath.log(hitGramsCountLogA, libTitleGramsCount + hitGramsCountLogA - 1)
+                                    * MMath.log(hitGramsCountLogA, gTextGramsCount + hitGramsCountLogA - 1) * this_growth_value;
+
+                        }
+
+                        double scoreX = (contentK * thisContentAvgIdf + titleK * thisTitleAvgIdf) / (contentK + titleK)
+                                * fullText.articleWeight;
+
+                        // 除去平均长度的log值
+
+                        scoreX /= MMath.log(gramsCountLogA, fullText.totalGramsCount + gramsCountLogA);
+
+                        double score = scoreCalculator.score(scoreX);
+                        SimilaritySearchResult similaritySearchResult = new SimilaritySearchResult();
+
+                        similaritySearchResult.id = fullText.id;
+                        similaritySearchResult.score = score;
+                        similaritySearchResult.text = fullText.contentText.sourceText;
+                        similaritySearchResult.title = fullText.titleText.sourceText;
+//                        if (Double.isNaN(similaritySearchResult.score)) {
+//
+//                        }
+                        assert !Double.isNaN(similaritySearchResult.score);
+                        if (thisPriorityQueue.size() < topK) {
+                            thisPriorityQueue.add(similaritySearchResult);
+                        } else if (thisPriorityQueue.peek().score < similaritySearchResult.score) {
+                            thisPriorityQueue.poll();
+                            thisPriorityQueue.add(similaritySearchResult);
+                        }
+                    }
+
+                    synchronized (priorityQueue) {
+                        while (!thisPriorityQueue.isEmpty()) {
+                            SimilaritySearchResult similaritySearchResult = thisPriorityQueue.poll();
+
+                            if (priorityQueue.size() < topK) {
+                                priorityQueue.add(similaritySearchResult);
+                            } else if (priorityQueue.peek().score < similaritySearchResult.score) {
+                                priorityQueue.poll();
+                                priorityQueue.add(similaritySearchResult);
+                            }
+                        }
+                    }
+                }
+            });
+            threads.add(thread);
+            thread.start();
+            textMatchInfoSt = end;
+        }
+
+        // 等待得分计算-排序线程结束
+        for (Thread thread : threads) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         while (!priorityQueue.isEmpty()) {

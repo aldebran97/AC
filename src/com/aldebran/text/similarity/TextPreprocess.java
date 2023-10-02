@@ -72,7 +72,7 @@ public class TextPreprocess implements Serializable {
                     }
                 }
                 String word = list.get(0).toLowerCase();
-                String replacement = list.size() > 1 ? list.get(1).toLowerCase() : "";
+                String replacement = list.size() > 1 ? list.get(1).toLowerCase() : " ";
                 replaceMap.put(word, replacement);
                 words.add(word);
             }
