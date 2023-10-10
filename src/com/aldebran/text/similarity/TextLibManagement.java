@@ -35,7 +35,7 @@ public class TextLibManagement {
     }
 
     public void loadLibFromDisk(String libName) throws Exception {
-        TextSimilaritySearch lib = TextSimilaritySearch.load(new File(libsFolder, libName));
+        TextSimilaritySearch lib = TextSimilaritySearch.load(new File(libsFolder, libName), true);
         nameLibMap.put(libName, lib);
     }
 
@@ -46,12 +46,12 @@ public class TextLibManagement {
     }
 
 
-    public void saveLib(String libName) throws IOException {
+    public void saveLib(String libName) throws IOException, InterruptedException {
         TextSimilaritySearch lib = nameLibMap.get(libName);
-        TextSimilaritySearch.save(lib, new File(libsFolder, libName));
+        TextSimilaritySearch.save(lib, new File(libsFolder, libName), true);
     }
 
-    public void saveLibs(Collection<String> libNames) throws IOException {
+    public void saveLibs(Collection<String> libNames) throws IOException, InterruptedException {
         for (String libName : libNames) {
             saveLib(libName);
         }

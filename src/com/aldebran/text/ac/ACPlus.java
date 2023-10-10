@@ -23,13 +23,12 @@ public class ACPlus extends AC implements Serializable {
             find = find.mismatchPointer;
         }
     }
-    
-    public static ACPlus load(File inFile) throws Exception {
-        try (FileInputStream fileInputStream = new FileInputStream(inFile);
-             BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream, 1 * 1024 * 1024);
-             ObjectInputStream objectInputStream = new ObjectInputStream(bufferedInputStream);
-        ) {
-            return ContinuousSerialUtil.loadACPlus(objectInputStream);
+
+    public static ACPlus load(File saveFolder, boolean allowMultipleThreads) throws Exception {
+        if (!allowMultipleThreads) {
+            return (ACPlus) ContinuousSerialUtil.loadACSingleThread(saveFolder, false);
+        } else {
+            return (ACPlus) ContinuousSerialUtil.loadACMultipleThreads(saveFolder, false);
         }
     }
 }

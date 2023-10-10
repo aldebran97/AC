@@ -218,22 +218,21 @@ public class AC implements Serializable {
         }
     }
 
-    public static File save(AC ac, File outFile) throws IOException {
-        try (FileOutputStream fileOutputStream = new FileOutputStream(outFile);
-             BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream, 1 * 1024 * 1024);
-             ObjectOutputStream objectOutputStream = new ObjectOutputStream(bufferedOutputStream);
-        ) {
-            ContinuousSerialUtil.saveAC(objectOutputStream, ac, 10 * 10000);
+    public static File save(AC ac, File saveFolder, boolean allowMultipleThreads) throws IOException, InterruptedException {
+        int defaultUnitSize = 1000;
+        if (!allowMultipleThreads) {
+            ContinuousSerialUtil.saveACSingleThread(saveFolder, ac, defaultUnitSize);
+        } else {
+            ContinuousSerialUtil.saveACMultipleThreads(saveFolder, ac, defaultUnitSize);
         }
-        return outFile;
+        return saveFolder;
     }
 
-    public static AC load(File inFile) throws Exception {
-        try (FileInputStream fileInputStream = new FileInputStream(inFile);
-             BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream, 1 * 1024 * 1024);
-             ObjectInputStream objectInputStream = new ObjectInputStream(bufferedInputStream);
-        ) {
-            return ContinuousSerialUtil.loadAC(objectInputStream);
+    public static AC load(File saveFolder, boolean allowMultipleThreads) throws Exception {
+        if (!allowMultipleThreads) {
+            return ContinuousSerialUtil.loadACSingleThread(saveFolder, false);
+        } else {
+            return ContinuousSerialUtil.loadACMultipleThreads(saveFolder, false);
         }
     }
 

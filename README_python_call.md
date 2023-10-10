@@ -107,7 +107,7 @@ lib.addText(text3, title3, "3", 1)
 lib.update()
 
 # 如果你想支持多线程检索，设置lib.allowMultiThreadsSearch为True。
-# 只有文章数量大于lib.searchDocsUnit才会启用多线程。
+# 只有命中数量大于lib.searchDocsUnit才会启用多线程。此值的取值范围最好在[10000-30000]。
 # lib.allowMultiThreadsSearch = True
 
 for result in lib.similaritySearch(
@@ -148,14 +148,14 @@ lib.changeArgs(
 #### 保存
 
 ```shell
-outFile = FILE_CLASS("./test-lib");  # 替换为自己的路径
-TextSimilaritySearchClass.save(lib, outFile)
+saveFolder = FILE_CLASS("./test-lib");  # 替换为自己的路径，是个目录
+TextSimilaritySearchClass.save(lib, saveFolder,True) # 最后一个参数表示是否启用多线程
 ```
 
 #### 加载
 
 
 ```shell
-inFile = FILE_CLASS("./test-lib")  # 替换为自己的路径
-lib = TextSimilaritySearchClass.load(inFile)
+saveFolder = FILE_CLASS("./test-lib")  # 替换为自己的路径，是个目录
+lib = TextSimilaritySearchClass.load(saveFolder,True) # 最后一个参数表示是否启用多线程
 ```

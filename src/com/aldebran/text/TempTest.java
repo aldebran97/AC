@@ -52,10 +52,10 @@ public class TempTest {
         File acLibFile = new File("./test-ac");
 
         // 导出测试
-        AC.save(ac, acLibFile);
+        AC.save(ac, acLibFile, false);
 
         // 导入测试
-        AC ac2 = AC.load(acLibFile);
+        AC ac2 = AC.load(acLibFile, false);
 
         // 验证ac库是否完全相同，CheckUtil.acEquals仅在测试使用，不要在正式环境上使用
         System.out.println(CheckUtil.acEquals(ac2, ac));
@@ -89,9 +89,9 @@ public class TempTest {
 
         File acLibFile = new File("./test-ac");
 
-        ACPlus.save(acPlus, acLibFile);
+        ACPlus.save(acPlus, acLibFile, false);
 
-        AC ac2 = ACPlus.load(acLibFile); // 加载ACPlus库应该用ACPlus.load导入，不能用AC.load
+        AC ac2 = ACPlus.load(acLibFile, false); // 加载ACPlus库应该用ACPlus.load导入，不能用AC.load
 
         System.out.println(CheckUtil.acEquals(ac2, acPlus)); // CheckUtil.acEquals仅在测试使用，不要在正式环境上使用
     }
@@ -140,9 +140,9 @@ public class TempTest {
             System.out.printf("title: %s, score: %s, text: %s, id: %s%n", result.title, result.score, result.text, result.id);
         }
 
-        File outFile = TextSimilaritySearch.save(textSimilaritySearch, new File("./test-lib"));
+        File outFile = TextSimilaritySearch.save(textSimilaritySearch, new File("./test-lib"), true);
 
-        TextSimilaritySearch textSimilaritySearch2 = TextSimilaritySearch.load(outFile);
+        TextSimilaritySearch textSimilaritySearch2 = TextSimilaritySearch.load(outFile, true);
 
         System.out.println(textSimilaritySearch.simpleEquals(textSimilaritySearch2));
 

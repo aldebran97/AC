@@ -105,8 +105,6 @@ public class TextSimilaritySearch implements Serializable {
 
     public transient boolean allowMultiThreadsSearch = false;
 
-    public transient boolean allowMultiThreadsLoadSave = false;
-
     public TextSimilaritySearch(double criticalContentHitCount,
                                 double criticalTitleHitCount,
                                 double criticalScore,
@@ -739,23 +737,23 @@ public class TextSimilaritySearch implements Serializable {
         return result;
     }
 
-    public static File save(TextSimilaritySearch textLib, File outFile) throws IOException {
-        try (FileOutputStream fO = new FileOutputStream(outFile);
-             BufferedOutputStream bO = new BufferedOutputStream(fO, 1 * 1024 * 1024);
-             ObjectOutputStream oO = new ObjectOutputStream(bO);
-        ) {
-            ContinuousSerialUtil.saveTextSimilaritySearch(oO, textLib, 1 * 1000);
+    public static File save(TextSimilaritySearch textLib, File folder, boolean allowMultipleThreads) throws IOException, InterruptedException {
+        int defaultUnitSize = 1000;
+        if (!allowMultipleThreads) {
+            ContinuousSerialUtil.saveTextSimilaritySearchSingleThread(folder, textLib, defaultUnitSize);
+        } else {
+            ContinuousSerialUtil.saveTextSimilaritySearchMultipleThreads(folder, textLib, defaultUnitSize);
         }
-        return outFile;
+
+        return folder;
     }
 
-    public static TextSimilaritySearch load(File inFile) throws Exception {
-        try (
-                FileInputStream fileInputStream = new FileInputStream(inFile);
-                BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
-                ObjectInputStream objectInputStream = new ObjectInputStream(bufferedInputStream);
-        ) {
-            return ContinuousSerialUtil.loadTextSimilaritySearch(objectInputStream);
+    public static TextSimilaritySearch load(File folder, boolean allowMultipleThreads) throws Exception {
+
+        if (!allowMultipleThreads) {
+            return ContinuousSerialUtil.loadTextSimilaritySearchSingleThread(folder);
+        } else {
+            return ContinuousSerialUtil.loadTextSimilaritySearchMultipleThreads(folder);
         }
     }
 

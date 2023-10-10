@@ -83,7 +83,7 @@ textSimilaritySearch.addText(text3,title3,"3",1);
 textSimilaritySearch.update();
 
 // 如果你想支持多线程检索，设置lib.allowMultiThreadsSearch为true。
-// 只有文章数量大于lib.searchDocsUnit才会启用多线程。
+// 只有命中数量大于lib.searchDocsUnit才会启用多线程。此值的取值范围最好在[10000-30000]。
 // lib.allowMultiThreadsSearch = true;
 
 // 相似查询
@@ -122,8 +122,8 @@ textSimilaritySearch.changeArgs(
 #### 保存
 
 ```java
-File outFile=new File("./test-lib"); // 替换为自己的路径
-TextSimilaritySearch.save(textSimilaritySearch,outFile);
+File saveFolder=new File("./test-lib"); // 替换为自己的路径，是一个目录。
+TextSimilaritySearch.save(textSimilaritySearch,saveFolder,true); // 最后一个参数表示是否允许多线程导出。
 ```
 
 
@@ -131,6 +131,6 @@ TextSimilaritySearch.save(textSimilaritySearch,outFile);
 
 ```java
 // load
-File inFile=new File("./test-lib"); // 替换为自己的路径
-TextSimilaritySearch textSimilaritySearch=TextSimilaritySearch.load(inFile);
+File saveFolder=new File("./test-lib"); // 替换为自己的路径，是一个目录。
+TextSimilaritySearch textSimilaritySearch=TextSimilaritySearch.load(saveFolder, true); // 最后一个参数表示是否允许多线程导入。
 ```
