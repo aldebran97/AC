@@ -4,7 +4,6 @@ import com.aldebran.text.ac.AC;
 import com.aldebran.text.util.CheckUtil;
 import com.aldebran.text.util.ContinuousSerialUtil;
 import com.aldebran.text.util.MMath;
-import kotlin.jvm.Transient;
 
 import java.io.*;
 import java.util.*;
@@ -185,9 +184,10 @@ public class TextSimilaritySearch implements Serializable {
 //        assert MMath.legalPositiveDoubleValue(gramAvgIdf);
 //        assert MMath.legalPositiveDoubleValue(gramMaxIdf);
 //        assert MMath.legalPositiveDoubleValue(gramMinIdf);
-        System.out.println("gramAvgIdf: " + gramAvgIdf);
-        System.out.println("gramMaxIdf: " + gramMaxIdf);
-        System.out.println("gramMinIdf: " + gramMinIdf);
+
+//        System.out.println("gramAvgIdf: " + gramAvgIdf);
+//        System.out.println("gramMaxIdf: " + gramMaxIdf);
+//        System.out.println("gramMinIdf: " + gramMinIdf);
     }
 
     public void changeArgs(double criticalContentHitCount,
@@ -840,15 +840,15 @@ public class TextSimilaritySearch implements Serializable {
         }
 
         avgTitleAvgIdf = titleAvgIdfSum / idTextMap.size();
-        System.out.println("avgTitleAvgIdf: " + avgTitleAvgIdf);
+//        System.out.println("avgTitleAvgIdf: " + avgTitleAvgIdf);
         avgContentAvgIdf = contentAvgIdfSum / idTextMap.size();
-        System.out.println("avgContentAvgIdf: " + avgContentAvgIdf);
+//        System.out.println("avgContentAvgIdf: " + avgContentAvgIdf);
         titleIdfRate = avgContentAvgIdf / avgTitleAvgIdf;
-        System.out.println("titleIdfRate: " + titleIdfRate);
+//        System.out.println("titleIdfRate: " + titleIdfRate);
 
         // 基础增加值采用极差
         basicGrowthValue = maxContentAvgIdf - minContentAvgIdf;
-        System.out.println("basicGrowthValue: " + basicGrowthValue);
+//        System.out.println("basicGrowthValue: " + basicGrowthValue);
     }
 
     public Statistics getStatistics() {

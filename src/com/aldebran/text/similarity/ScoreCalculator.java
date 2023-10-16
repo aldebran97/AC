@@ -35,12 +35,12 @@ public class ScoreCalculator implements Serializable {
         double titleScoreExpect = textAvgIdf + criticalTitleHitCount * basicGrowthValue * idfGrowthK;
 
 
-        System.out.println("titleScoreExpect: " + titleScoreExpect);
+//        System.out.println("titleScoreExpect: " + titleScoreExpect);
 
         // 内容得分期望
         double contentScoreExpect = textAvgIdf + criticalContentHitCount * basicGrowthValue * idfGrowthK;
 
-        System.out.println("contentScoreExpect: " + contentScoreExpect);
+//        System.out.println("contentScoreExpect: " + contentScoreExpect);
 
         double finalScoreExpect = (contentK * contentScoreExpect + titleK * titleScoreExpect) / (contentK + titleK);
 
@@ -48,8 +48,7 @@ public class ScoreCalculator implements Serializable {
 
         finalScoreExpect /= MMath.log(gramsCountLogA, gramsAvgCount + gramsCountLogA);
 
-        System.out.println("finalScoreExpect: " + finalScoreExpect);
-
+//        System.out.println("finalScoreExpect: " + finalScoreExpect);
 
         this.a = (1.0 / (criticalScore - 1) - b) / finalScoreExpect;
 

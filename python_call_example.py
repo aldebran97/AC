@@ -4,16 +4,17 @@ python调用相似检索例子
 
 import os
 
-os.environ['CLASSPATH'] = r"C:\Users\aldebran\user_dir\code\AC\out2\AC.jar"
-os.environ['JAVA_HOME'] = r"D:\user_dir\program_files\graalvm-jdk-21+35.1"
+os.environ['CLASSPATH'] = r"/Users/aldebran/custom/code/AC/out2/AC.jar" # jar包位置，替换为自己的
+os.environ['JAVA_HOME'] = r"/Library/Java/JavaVirtualMachines/jdk1.8.0_291.jdk/Contents/Home" # JAVA_HOME
 
 import jnius_config
 
-# 指定了堆内存1G，栈内存256M。根据文章数量和文章长度调整。（文章数量对内存的消耗比文章长度大）
-jnius_config.add_options('-Xms1g', '-Xmx1g', '-Xss256m')
+# 指定了堆内存1G，栈内存512M。根据文章数量和文章长度调整。（文章数量对内存消耗的影响比文章长度大）
+jnius_config.add_options('-Xms1g', '-Xmx1g', '-Xss512m')
 
 from jnius import autoclass
 
+# class object
 AC_CLASS = autoclass('com.aldebran.text.ac.AC')
 AC_PLUS_CLASS = autoclass('com.aldebran.text.ac.ACPlus')
 TextSimilaritySearchClass = autoclass('com.aldebran.text.similarity.TextSimilaritySearch')
@@ -21,24 +22,30 @@ ARRAY_LIST_CLASS = autoclass('java.util.ArrayList')
 FILE_CLASS = autoclass('java.io.File')
 
 
+# python list to java list
 def j_list(l: list):
     j_list_obj = ARRAY_LIST_CLASS()
     for e in l: j_list_obj.add(e)
     return j_list_obj
 
 
-ac = AC_CLASS()
-ac.addWords(j_list(['word1', 'word2', 'word3']))
-ac.update()
+# （1）开始使用AC自动机，用于海量词库匹配。
+ac = AC_CLASS()  # 实例化AC自动机，如果您的词库有包含关系，请用AC_PLUS_CLASS。
+ac.addWords(j_list(['word1', 'word2', 'word3']))  # 插入若干词
+ac.update()  # 更新失配指针，首次必须调用。之后词库更新不宜频繁调用，应在恰当的时机调用（比如累计追加数量到达阈值，或者间隔时间到达阈值）。
+# 词库匹配
 for mr in ac.indexOf("001word1002word0003word2"):
     print('index:', mr.index, 'word:', mr.word)
 
-ac_lib_file = FILE_CLASS("./test-ac-py")
+# 保存AC自动机库到磁盘
+ac_save_folder = FILE_CLASS("./test-ac-py")  # 替换为自己的路径，是个目录
 
-AC_CLASS.save(ac,ac_lib_file)
+AC_CLASS.save(ac, ac_save_folder, True)  # 最后一个参数表示是否启用多线程
 
-ac = AC_CLASS.load(ac_lib_file)
+# 加载AC自动机到内存
+ac = AC_CLASS.load(ac_save_folder, True)  # 最后一个参数表示是否启用多线程
 
+# （2）开始使用文本相似检索库，用于海量文本的相似搜索。
 lib = TextSimilaritySearchClass(
     3,  # criticalContentHitCount，临界情况，期望的内容命中Gram个数
     3,  # criticalTitleHitCount，临界情况，期望的标题命中Gram个数
@@ -52,7 +59,8 @@ lib = TextSimilaritySearchClass(
     'test'  # 相似库名称
 )
 
-lib.textPreprocess.loadReplaceMapFromFile("./replace.txt")  # 替换为自己的
+# 加载替换库，替换为自己的，如果没有则项目提供的即可，能进一步提升查全率。
+lib.textPreprocess.loadReplaceMapFromFile("./replace.txt")
 
 text1 = "《梦游天姥吟留别》是唐代大诗人李白的诗作。这是一首记梦诗，也是一首游仙诗。此诗以记梦为由，抒写了对光明、自由的渴求，对黑暗现实的不满，表现了诗人蔑视权贵、不卑不屈的叛逆精神。"
 
@@ -83,6 +91,9 @@ lib.addText(text3, title3, "3", 1)
 lib.update()
 
 # 相似检索
+# 如果你想支持多线程检索，设置lib.allowMultiThreadsSearch为True。
+# 只有命中数量大于lib.searchDocsUnit才会启用多线程。此值的取值范围最好在[10000-30000]，此值低则检索性能越高，此值高更能节省系统资源。
+# lib.allowMultiThreadsSearch = True
 for result in lib.similaritySearch(
         """《梦游天姥吟留别》作于李白出翰林之后。唐玄宗天宝三载（744），李白在长安受到权贵的排挤，被放出京，返回东鲁（在今山东）家园。
         辛弃疾的《水调歌头》在此之后。
@@ -104,8 +115,8 @@ lib.changeArgs(
 )
 
 # 导出库
-lib_file = FILE_CLASS("./test-lib-py")  # 替换为自己的路径
-TextSimilaritySearchClass.save(lib, lib_file)
+lib_folder = FILE_CLASS("./test-lib-py")  # 替换为自己的路径，是个目录
+TextSimilaritySearchClass.save(lib, lib_folder, True)  # 最后一个参数表示是否启用多线程
 
 # 导入库
-lib = TextSimilaritySearchClass.load(lib_file)
+lib = TextSimilaritySearchClass.load(lib_folder, True)  # 最后一个参数表示是否启用多线程

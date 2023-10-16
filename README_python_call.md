@@ -10,13 +10,13 @@ CLASSPATH中指定jar路径，指定JAVA_HOME
 ```shell
 import os
 
-os.environ['CLASSPATH'] = r"C:\Users\aldebran\user_dir\code\AC\out2\AC.jar"
-os.environ['JAVA_HOME'] = r"D:\Program Files\Java\jdk-1.8\bin"
+os.environ['CLASSPATH'] = r"/Users/aldebran/custom/code/AC/artifacts/AC.jar" # jar包位置，替换为自己的
+os.environ['JAVA_HOME'] = r"/Library/Java/JavaVirtualMachines/jdk1.8.0_291.jdk/Contents/Home" # JAVA_HOME
 
 import jnius_config
 
-# 指定了堆内存2G，栈内存1024M。根据文章数量和文章长度调整。（文章数量对内存的影响比文章长度大）
-jnius_config.add_options('-Xms2g', '-Xmx2g', '-Xss1024m')
+# 指定了堆内存1G，栈内存512M。需要根据文章数量和文章长度调整堆内存。（文章数量对内存消耗的影响比文章长度大）
+jnius_config.add_options('-Xms1g', '-Xmx1g', '-Xss512m')
 
 from jnius import autoclass
 
@@ -107,7 +107,7 @@ lib.addText(text3, title3, "3", 1)
 lib.update()
 
 # 如果你想支持多线程检索，设置lib.allowMultiThreadsSearch为True。
-# 只有命中数量大于lib.searchDocsUnit才会启用多线程。此值的取值范围最好在[10000-30000]。
+# 只有命中数量大于lib.searchDocsUnit才会启用多线程。此值的取值范围最好在[10000-30000]，此值低则检索性能越高，此值高更能节省系统资源。
 # lib.allowMultiThreadsSearch = True
 
 for result in lib.similaritySearch(

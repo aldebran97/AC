@@ -40,7 +40,7 @@ AC ac2 = AC.load(acLibFile);  // 如果您用了ACPlus，请用ACPlus.load
 ##### 插入查询用法
 
 ```java
-// 构造
+// 创建文本相似库
 TextSimilaritySearch textSimilaritySearch=new TextSimilaritySearch(
         3, // criticalContentHitCount，临界情况，期望的内容命中Gram个数
         3, // criticalTitleHitCount，临界情况，期望的标题命中Gram个数

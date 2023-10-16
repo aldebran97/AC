@@ -4,7 +4,6 @@ import com.aldebran.text.ac.AC;
 import com.aldebran.text.ac.ACPlus;
 import com.aldebran.text.similarity.FullText;
 import com.aldebran.text.similarity.TextSimilaritySearch;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.util.*;
@@ -61,7 +60,6 @@ public class ContinuousSerialUtil {
 
             Iterator<Map.Entry> entries = hashMap.entrySet().iterator();
 
-            @NotNull
             @Override
             public Iterator iterator() {
                 return new Iterator() {
@@ -764,7 +762,6 @@ public class ContinuousSerialUtil {
 
             String key = null;
 
-            @NotNull
             @Override
             public Iterator iterator() {
                 return new Iterator() {
