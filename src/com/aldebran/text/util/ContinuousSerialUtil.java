@@ -894,7 +894,6 @@ public class ContinuousSerialUtil {
         return lib;
     }
 
-    // TODO
     public static TextSimilaritySearch loadTextSimilaritySearchMultipleThreads(File saveFolder) throws IOException, ClassNotFoundException, InterruptedException {
 
         if (!saveFolder.isDirectory()) {
@@ -996,7 +995,7 @@ public class ContinuousSerialUtil {
 
         Thread t5 = new Thread(() -> {
             try {
-                finalLib.titleAC = loadACSingleThread(titleACFolder, false);
+                finalLib.titleAC = loadACMultipleThreads(titleACFolder, false);
             } catch (Exception e) {
                 synchronized (e) {
                     exceptions.add(e);
@@ -1009,7 +1008,7 @@ public class ContinuousSerialUtil {
 
         Thread t6 = new Thread(() -> {
             try {
-                finalLib.contentAC = loadACSingleThread(contentACFolder, false);
+                finalLib.contentAC = loadACMultipleThreads(contentACFolder, false);
             } catch (Exception e) {
                 synchronized (e) {
                     exceptions.add(e);
