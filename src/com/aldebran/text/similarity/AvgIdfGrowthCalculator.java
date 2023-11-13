@@ -30,7 +30,7 @@ public class AvgIdfGrowthCalculator implements Serializable {
         if (isTitle) {
             gramIdf *= titleIdfRate;
         }
-        return 10 * gramIdf / gramAvgIdf * basicGrowthValue;
+        return idfGrowthK * gramIdf / gramAvgIdf * basicGrowthValue;
     }
 
     public void update(double basicGrowthValue, double gramAvgIdf, double gramMinIdf, double gramMaxIdf, double titleIdfRate,
