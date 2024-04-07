@@ -1,5 +1,7 @@
 package com.aldebran.text.replacePolicy;
 
+import com.aldebran.text.Constants;
+
 import java.io.Serializable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,7 +20,7 @@ public class WordReplaceInfo extends ReplaceInfo implements Serializable {
             int ed = matcher.end();
             String ms = text.substring(st, ed);
             sb.append(text.substring(index, st));
-            sb.append("B" + ms + "B");
+            sb.append(Constants.WORD_PREFIX_POSTFIX + ms + Constants.WORD_PREFIX_POSTFIX);
             index = ed;
         }
         if (index < text.length()) {
