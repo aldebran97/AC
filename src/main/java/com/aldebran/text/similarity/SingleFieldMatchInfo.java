@@ -1,4 +1,4 @@
-package main.java.com.aldebran.text.similarity;
+package com.aldebran.text.similarity;
 
 import com.aldebran.text.text.BasicText;
 

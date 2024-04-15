@@ -1,4 +1,4 @@
-package main.java.com.aldebran.text.preprocess;
+package com.aldebran.text.preprocess;
 
 import com.aldebran.text.Constants;
 import com.aldebran.text.replacePolicy.ReplaceInfo;

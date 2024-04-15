@@ -1,4 +1,4 @@
-package main.java.com.aldebran.text.ac;
+package com.aldebran.text.ac;
 
 import com.aldebran.text.util.CheckUtil;
 import com.aldebran.text.util.ContinuousSerialUtil;

@@ -1,4 +1,4 @@
-package main.java.com.aldebran.text.util;
+package com.aldebran.text.util;
 
 import com.aldebran.text.Constants;
 import com.aldebran.text.ac.AC;

@@ -2,7 +2,7 @@
 
 一、Java类：
 
-（1）[Tokenizer.java](Tokenizer.java)[WordProcess.java](WordProcess.java)是抽象类，如果你有自己的分词器需要实现这个接口。
+（1）[Tokenizer.java](Tokenizer.java)(WordProcess.java)是抽象类，如果你有自己的分词器继承这个类，实现其中的加载、保存和片段分词方法。
 
 （2）[NGramTokenizer.java](NGramTokenizer.java)
 利用n-gram词包实现的分词器，特点是检索准确率高，但是空间资源消耗大。
@@ -42,7 +42,7 @@ NGramTokenizer nGramTokenizer = new NGramTokenizer(2, Arrays.asList(
 [老虎, 猫科, 动物, 虎凶, 凶猛, 猛无, 无匹, 棕熊, 犬科, 动物, 熊力, 犬科, 动物, 力大, 大无, 无穷, 皆为, 为森, 森林, 林之, 之王]
 ```
 
-词语预处理使用见：[README.md](..%2Fpreprocess%2FREADME.md)
+词语预处理用于处理相似语义，使用见：[README.md](..%2Fpreprocess%2FREADME.md)
 
 （2）DAGTokenizer
 

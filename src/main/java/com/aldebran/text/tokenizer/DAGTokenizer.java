@@ -1,4 +1,4 @@
-package main.java.com.aldebran.text.tokenizer;
+package com.aldebran.text.tokenizer;
 
 import com.aldebran.text.ac.AC;
 import com.aldebran.text.ac.ACPlus;

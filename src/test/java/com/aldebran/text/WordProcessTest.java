@@ -1,4 +1,4 @@
-package test.java.com.aldebran.text;
+package com.aldebran.text;
 
 import com.aldebran.text.preprocess.EnglishRootProcess;
 import com.aldebran.text.preprocess.WordParentProcess;

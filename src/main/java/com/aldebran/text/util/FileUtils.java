@@ -1,4 +1,4 @@
-package main.java.com.aldebran.text.util;
+package com.aldebran.text.util;
 
 import java.io.*;
 import java.nio.charset.Charset;

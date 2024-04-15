@@ -1,4 +1,4 @@
-package main.java.com.aldebran.text.score;
+package com.aldebran.text.score;
 
 import com.aldebran.text.util.CheckUtil;
 

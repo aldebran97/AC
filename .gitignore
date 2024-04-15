@@ -36,3 +36,7 @@ build/
 
 ### Mac OS ###
 .DS_Store
+.idea
+test-ac
+test-lib
+target

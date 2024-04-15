@@ -1,4 +1,4 @@
-package main.java.com.aldebran.text;
+package com.aldebran.text;
 
 import java.io.Serializable;
 

@@ -1,4 +1,4 @@
-package main.java.com.aldebran.text.replacePolicy;
+package com.aldebran.text.replacePolicy;
 
 import com.aldebran.text.Constants;
 

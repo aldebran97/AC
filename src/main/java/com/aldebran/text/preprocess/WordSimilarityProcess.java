@@ -1,4 +1,4 @@
-package main.java.com.aldebran.text.preprocess;
+package com.aldebran.text.preprocess;
 
 import java.io.File;
 import java.io.IOException;
