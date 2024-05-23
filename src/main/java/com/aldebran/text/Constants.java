@@ -20,7 +20,7 @@ public class Constants implements Serializable {
 
     public static final double CRITICAL_SCORE = 0.5;
 
-    public static final double CONTENT_K = 1;
+    public static final double CONTENT_K = 2;
 
     public static final double TITLE_K = 3;
 

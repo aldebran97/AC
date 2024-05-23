@@ -5,11 +5,13 @@ import com.aldebran.text.ac.ACPlus;
 import com.aldebran.text.score.BM25FinalScoreCalculator;
 import com.aldebran.text.text.BasicText;
 import com.aldebran.text.text.FullText;
+import com.aldebran.text.text.ShowText;
 import com.aldebran.text.text.TextType;
 import com.aldebran.text.tokenizer.NGramTokenizer;
 import com.aldebran.text.tokenizer.Tokenizer;
 import com.aldebran.text.util.CheckUtil;
 import com.aldebran.text.util.ContinuousSerialUtil;
+import com.aldebran.text.util.FileUtils;
 import com.aldebran.text.util.MMath;
 
 import java.io.File;
@@ -47,6 +49,12 @@ public class TextSimilaritySearch implements Serializable {
      */
     public String libName;
 
+    public transient File libFolder;
+
+    public transient File titleOriginDataFolder;
+
+    public transient File contentOriginDataFolder;
+
     // quick query
     public transient HashMap<String, FullText> idTextMap = new HashMap<>();
 
@@ -81,18 +89,28 @@ public class TextSimilaritySearch implements Serializable {
                                 double bm25B, // bm25算法中的b
                                 double itemScoreDiff, // 得分区分度
                                 Tokenizer tokenizer, // 分词器
-                                String libName) {
+                                String libName, // 库名
+                                File libFolder // 库存储路径
+    ) {
         modifyParams(criticalContentHitCount, criticalTitleHitCount, criticalScore, contentK, titleK, bm25K, bm25B, itemScoreDiff);
         this.tokenizer = tokenizer;
         this.libName = libName;
-
+        setSaveFolder(libFolder);
     }
 
-    public TextSimilaritySearch(String libName) {
+    public TextSimilaritySearch(String libName, File libFolder) {
         this(
                 CRITICAL_CONTENT_HIT_COUNT, CRITICAL_TITLE_HIT_COUNT, CRITICAL_SCORE, CONTENT_K, TITLE_K, BM25_K, BM25_B, ITEM_SCORE_DIFF,
-                new NGramTokenizer(2, null), libName
+                new NGramTokenizer(2, null), libName, libFolder
         );
+    }
+
+    public void setSaveFolder(File folder) {
+        this.libFolder = folder;
+        this.titleOriginDataFolder = new File(libFolder, "titleOriginData");
+        this.titleOriginDataFolder.mkdirs();
+        this.contentOriginDataFolder = new File(libFolder, "contentOriginData");
+        this.contentOriginDataFolder.mkdirs();
     }
 
     public void modifyParams(
@@ -168,10 +186,11 @@ public class TextSimilaritySearch implements Serializable {
         }
     }
 
-    private BasicText getBasicText(String id, String srcText, String dstText, List<String> words, TextType textType) {
+    private BasicText getBasicText(String id, String srcText, String dstText, List<String> words, TextType textType) throws IOException {
         BasicText basicText = new BasicText();
-        basicText.sourceText = srcText;
-        basicText.resultText = dstText;
+//        basicText.sourceText = srcText;
+//        basicText.resultText = dstText;
+        writeUnitTextToDisk(id, srcText, dstText, textType);
         basicText.totalWordsCountRepeat = words.size();
         basicText.wordCountMap = new HashMap<>();
 
@@ -189,8 +208,35 @@ public class TextSimilaritySearch implements Serializable {
         return basicText;
     }
 
+    private void writeUnitTextToDisk(String id, String srcText, String dstText, TextType textType) throws IOException {
+        File file;
+        CheckUtil.Assert(textType != null);
+        if (textType == TextType.TITLE) {
+            file = new File(this.titleOriginDataFolder, String.format("%s.json", id));
 
-    public void addText(String content, String title, String id, double weight) {
+        } else {
+            file = new File(this.contentOriginDataFolder, String.format("%s.json", id));
+        }
+        Map<String, String> data = new HashMap<>();
+        data.put("srcText", srcText);
+        data.put("dstText", dstText);
+        FileUtils.writeJSON(file, data);
+    }
+
+    private Map<String, Object> readUnitTextFromDisk(String id, TextType textType) throws IOException {
+        File file;
+        CheckUtil.Assert(textType != null);
+        if (textType == TextType.TITLE) {
+            file = new File(this.titleOriginDataFolder, String.format("%s.json", id));
+
+        } else {
+            file = new File(this.contentOriginDataFolder, String.format("%s.json", id));
+        }
+        return FileUtils.readJSONObject(file);
+    }
+
+
+    public void addText(String content, String title, String id, double weight) throws IOException {
 
         FullText fullText = new FullText();
         fullText.articleWeight = weight;
@@ -222,7 +268,7 @@ public class TextSimilaritySearch implements Serializable {
 
     }
 
-    public List<SimilaritySearchResult> similaritySearch(String text, int topK) {
+    public List<SimilaritySearchResult> similaritySearch(String text, int topK) throws Exception {
         double textsCount = textsCount();
         if (textsCount <= multipleThreadSearchMinTextsCount || !allowMultiThreadsSearch) {
             return similaritySearchSingleThread(text, topK);
@@ -335,7 +381,7 @@ public class TextSimilaritySearch implements Serializable {
         return threads;
     }
 
-    private List<SimilaritySearchResult> similaritySearchSingleThread(String text, int topK) {
+    private List<SimilaritySearchResult> similaritySearchSingleThread(String text, int topK) throws IOException {
 
         String gPString = tokenizer.textPreprocess.preprocessToText(text);
 
@@ -352,7 +398,7 @@ public class TextSimilaritySearch implements Serializable {
     }
 
     // 整理好后的排序
-    private List<SimilaritySearchResult> sort(Collection<MultipleFieldMatchInfo> multipleFieldMatchInfos, int topK) {
+    private List<SimilaritySearchResult> sort(Collection<MultipleFieldMatchInfo> multipleFieldMatchInfos, int topK) throws IOException {
 
         List<SimilaritySearchResult> result = new LinkedList<>();
 
@@ -382,8 +428,10 @@ public class TextSimilaritySearch implements Serializable {
 
             similaritySearchResult.id = fullText.id;
             similaritySearchResult.score = score;
-            similaritySearchResult.text = fullText.contentText.sourceText;
-            similaritySearchResult.title = fullText.titleText.sourceText;
+//            similaritySearchResult.content = fullText.contentText.sourceText;
+//            similaritySearchResult.title = fullText.titleText.sourceText;
+            similaritySearchResult.content = readUnitTextFromDisk(fullText.id, TextType.CONTENT).get("srcText").toString();
+            similaritySearchResult.title = readUnitTextFromDisk(fullText.id, TextType.TITLE).get("srcText").toString();
 
             if (Double.isNaN(similaritySearchResult.score)) continue;
 
@@ -415,7 +463,7 @@ public class TextSimilaritySearch implements Serializable {
         threads.clear();
     }
 
-    private List<SimilaritySearchResult> similaritySearchMultipleThread(String text, int topK) {
+    private List<SimilaritySearchResult> similaritySearchMultipleThread(String text, int topK) throws Exception {
         double textsCount = textsCount();
         int startThreadsNum = (int) Math.ceil(textsCount / multipleThreadSearchMinTextsCount);
 
@@ -441,6 +489,8 @@ public class TextSimilaritySearch implements Serializable {
             }
         });
 
+        List<Exception> exceptions = new ArrayList<>();
+
         List<MultipleFieldMatchInfo> textMatchInfos = idMatchInfoMap.values().stream().collect(Collectors.toList());
         int textMatchInfoUnit = (int) Math.ceil(textMatchInfos.size() * 1.0 / startThreadsNum);
         int textMatchInfoSt = 0;
@@ -454,7 +504,13 @@ public class TextSimilaritySearch implements Serializable {
                     List<MultipleFieldMatchInfo> subList = textMatchInfos.subList(i, j);
                     postProcessMatchInfo(subList);
 
-                    List<SimilaritySearchResult> thisResult = sort(textMatchInfos.subList(i, j), topK);
+                    List<SimilaritySearchResult> thisResult = null;
+                    try {
+                        thisResult = sort(textMatchInfos.subList(i, j), topK);
+                    } catch (IOException e) {
+                        exceptions.add(e);
+                        thisResult = new ArrayList<>();
+                    }
 
 
                     synchronized (priorityQueue) {
@@ -477,6 +533,10 @@ public class TextSimilaritySearch implements Serializable {
 
         // 等待得分计算-排序线程结束
         waitThreads(threads);
+
+        if (!exceptions.isEmpty()) {
+            throw new Exception("子线程计算得分+排序出现异常！", exceptions.get(0));
+        }
 
         while (!priorityQueue.isEmpty()) {
             result.add(0, priorityQueue.poll());
@@ -527,8 +587,15 @@ public class TextSimilaritySearch implements Serializable {
         };
     }
 
-    public FullText queryById(String id) {
-        return idTextMap.get(id);
+    public ShowText queryById(String id) throws IOException {
+        if (!idTextMap.containsKey(id)) {
+            return null;
+        }
+        ShowText showText = new ShowText();
+        showText.id = id;
+        showText.content = readUnitTextFromDisk(id, TextType.CONTENT).get("srcText").toString();
+        showText.title = readUnitTextFromDisk(id, TextType.TITLE).get("srcText").toString();
+        return showText;
     }
 
     public double avgFullTextLength() {

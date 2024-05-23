@@ -1,6 +1,6 @@
-package com.aldebran.text.similarity;
+package com.aldebran.text.text;
 
-public class SimilaritySearchResult {
+public class ShowText {
 
     public String id;
 
@@ -8,15 +8,12 @@ public class SimilaritySearchResult {
 
     public String content;
 
-    public double score;
-
     @Override
     public String toString() {
-        return "SimilaritySearchResult{" +
+        return "ShowText{" +
                 "id='" + id + '\'' +
                 ", title='" + title + '\'' +
                 ", content='" + content + '\'' +
-                ", score=" + score +
                 '}';
     }
 }

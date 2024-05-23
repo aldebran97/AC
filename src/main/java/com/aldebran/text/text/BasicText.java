@@ -11,10 +11,6 @@ import java.util.Map;
  */
 public class BasicText implements Serializable {
 
-    public String sourceText;
-
-    public String resultText;
-
     public Map<String, Integer> wordCountMap;
 
     public int totalWordsCountRepeat;
@@ -31,8 +27,6 @@ public class BasicText implements Serializable {
     @Override
     public String toString() {
         return "BasicText{" +
-                "sourceText='" + sourceText + '\'' +
-                ", resultText='" + resultText + '\'' +
                 ", wordCountMap=" + wordCountMap +
                 ", totalWordsCountRepeat=" + totalWordsCountRepeat +
                 ", avgIdf=" + avgIdf +

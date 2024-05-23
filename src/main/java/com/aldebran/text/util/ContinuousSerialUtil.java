@@ -844,6 +844,8 @@ public class ContinuousSerialUtil {
         lib.titleAC = (ACPlus) loadACSingleThread(titleACFolder, true);
         lib.contentAC = (ACPlus) loadACSingleThread(contentACFolder, true);
 
+        lib.setSaveFolder(saveFolder);
+
         return lib;
     }
 
@@ -979,6 +981,8 @@ public class ContinuousSerialUtil {
         if (!exceptions.isEmpty()) {
             throw new IOException("加载TextSimilaritySearch失败!", exceptions.get(0)); // 仅携带第一个子错误也能够说明问题！
         }
+
+        lib.setSaveFolder(saveFolder);
 
         return lib;
     }

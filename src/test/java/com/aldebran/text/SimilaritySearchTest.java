@@ -1,14 +1,10 @@
 package com.aldebran.text;
 
-import com.aldebran.text.ac.AC;
 import com.aldebran.text.similarity.SimilaritySearchResult;
-import com.aldebran.text.ac.ACPlus;
 import com.aldebran.text.similarity.TextSimilaritySearch;
 import com.aldebran.text.tokenizer.NGramTokenizer;
-import com.aldebran.text.util.CheckUtil;
 
 import java.io.File;
-import java.util.Arrays;
 
 /**
  * 相似检索测试
@@ -37,6 +33,8 @@ public class SimilaritySearchTest {
 
     static void tryTextSimilaritySearch() throws Exception {
 
+        File libFolder = new File("./test-lib");
+
         TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch(
                 3,
                 3,
@@ -47,7 +45,8 @@ public class SimilaritySearchTest {
                 0.1,
                 10,
                 new NGramTokenizer(2, null),
-                "test");
+                "test",
+                libFolder);
 
         textSimilaritySearch.addText(text1, title1, "1", 1);
 
@@ -64,19 +63,19 @@ public class SimilaritySearchTest {
         for (SimilaritySearchResult result : textSimilaritySearch.similaritySearch(
                 "《梦游天姥吟留别》作于李白出翰林之后。唐玄宗天宝三载（744），李白在长安受到权贵的排挤，被放出京，返回东鲁（在今山东）家园。" +
                         "辛弃疾的《水调歌头》在此之后。", 10)) {
-            System.out.printf("title: %s, score: %s, text: %s, id: %s%n", result.title, result.score, result.text, result.id);
+            System.out.printf("title: %s, score: %s, text: %s, id: %s%n", result.title, result.score, result.content, result.id);
         }
 
-        File outFile = TextSimilaritySearch.save(textSimilaritySearch, new File("./test-lib"), true);
+        TextSimilaritySearch.save(textSimilaritySearch, textSimilaritySearch.libFolder, true);
 
-        TextSimilaritySearch textSimilaritySearch2 = TextSimilaritySearch.load(outFile, true);
+        TextSimilaritySearch textSimilaritySearch2 = TextSimilaritySearch.load(libFolder, true);
 
         textSimilaritySearch2.tokenizer = new NGramTokenizer(2, null);
 
         for (SimilaritySearchResult result : textSimilaritySearch2.similaritySearch(
                 "《梦游天姥吟留别》作于李白出翰林之后。唐玄宗天宝三载（744），李白在长安受到权贵的排挤，被放出京，返回东鲁（在今山东）家园。" +
                         "辛弃疾的《水调歌头》在此之后。", 10)) {
-            System.out.printf("title: %s, score: %s, text: %s, id: %s%n", result.title, result.score, result.text, result.id);
+            System.out.printf("title: %s, score: %s, text: %s, id: %s%n", result.title, result.score, result.content, result.id);
         }
 
 

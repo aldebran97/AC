@@ -2,6 +2,7 @@ package com.aldebran.text.similarity;
 
 
 import com.aldebran.text.text.FullText;
+import com.aldebran.text.text.ShowText;
 
 import java.io.File;
 import java.io.IOException;
@@ -76,13 +77,13 @@ public class TextLibManagement {
 
     // 相似检索
     public List<SimilaritySearchResult> similaritySearch(
-            String libName, String text, int topK) {
+            String libName, String text, int topK) throws Exception {
         return nameLibMap.get(libName).similaritySearch(text, topK);
     }
 
     // 相似检索，支持跨库检索
     public List<SimilaritySearchResult> similaritySearch(
-            Collection<String> libNames, String text, int topK) {
+            Collection<String> libNames, String text, int topK) throws Exception {
         PriorityQueue<SimilaritySearchResult> priorityQueue = new PriorityQueue<>(new Comparator<SimilaritySearchResult>() {
             @Override
             public int compare(SimilaritySearchResult o1, SimilaritySearchResult o2) {
@@ -110,7 +111,7 @@ public class TextLibManagement {
     }
 
     // 根据ID查询
-    public FullText getTextById(String libName, String id) {
+    public ShowText getTextById(String libName, String id) throws Exception {
         return nameLibMap.get(libName).queryById(id);
     }
 
