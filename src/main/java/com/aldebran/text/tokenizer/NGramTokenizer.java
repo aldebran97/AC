@@ -31,7 +31,7 @@ public class NGramTokenizer extends Tokenizer {
 
     @Override
     public List<String> tokenize(List<String> units) {
-        System.out.println("units: " + units);
+//        System.out.println("units: " + units);
         List<String> result = new ArrayList<>();
         for (int i = 0; i <= units.size() - n; i++) {
             String item = "";

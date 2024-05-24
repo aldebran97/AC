@@ -1,5 +1,7 @@
 ### similarity用于实现相似检索
 
+此文件是JAVA调用版本，Python调用版本见[README_python.md](README_python.md)
+
 一、功能：海量文本的相似检索
 
 [TextSimilaritySearch.java](TextSimilaritySearch.java)
@@ -63,6 +65,7 @@ String text3 = "伊凡一世富于谋略，为达到自己的目的不择手段�
 
 String title3 = "伊凡一世";
 
+File libFolder = new File("./test-lib"); // 保存路径
 
 TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch(
         3, // 内容词临界命中个数
@@ -74,7 +77,9 @@ TextSimilaritySearch textSimilaritySearch = new TextSimilaritySearch(
         0.1, // bm25算法中的b
         10, // 得分区分度
         new NGramTokenizer(2, null), // 分词器
-        "test"); // 库名
+        "test", // 库名
+        libFolder // 保存路径
+        );
 
 textSimilaritySearch.addText(text1, title1, "1", 1); // 内容 标题 自定义ID 附加权重
 
@@ -108,7 +113,7 @@ tokenizer详细使用见[README.md](..%2Ftokenizer%2FREADME.md)
 
 【2】保存
 ```java
-File outFile = TextSimilaritySearch.save(textSimilaritySearch, new File("./test-lib"), true);
+TextSimilaritySearch.save(textSimilaritySearch, textSimilaritySearch.libFolder, true);
 ```
 
 【3】加载

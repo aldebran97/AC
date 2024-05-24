@@ -248,6 +248,9 @@ public class TextSimilaritySearch implements Serializable {
         List<String> contentWords = tokenizer.tokenize(content);
         List<String> titleWords = tokenizer.tokenize(title);
 
+//        System.out.println("contentWords: " + contentWords);
+//        System.out.println("titleWords: " + titleWords);
+
         if (contentWords.isEmpty() || titleWords.isEmpty()) {
             // ignore too short text
 //            System.out.printf("ignore, id: %s, title: %s, content: %s%n", id, title, content);
@@ -261,7 +264,7 @@ public class TextSimilaritySearch implements Serializable {
         contentAC.addWords(contentWords);
         contentWordsCountSum += contentWords.size();
 
-        titleAC.addWords(contentWords);
+        titleAC.addWords(titleWords);
         titleWordsCountSum += titleWords.size();
 
         idTextMap.put(id, fullText);
@@ -285,6 +288,7 @@ public class TextSimilaritySearch implements Serializable {
         ACPlus acPlus = textType == TextType.TITLE ? titleAC : contentAC;
         Map<String, Set<String>> wordTextIdsMap = textType == TextType.TITLE ? titleWordTextIdsMap : contentWordTextIdsMap;
         List<AC.MatchResult> mrs = acPlus.indexOf(processedText);
+//        System.out.printf("text: %s, mrs: %s, text type: %s%n", processedText, mrs, textType);
         getMatchInfoSingleThread(idMatchInfoMap, wordTextIdsMap, mrs, textType);
         postProcessMatchInfo(idMatchInfoMap.values());
     }
@@ -384,6 +388,8 @@ public class TextSimilaritySearch implements Serializable {
     private List<SimilaritySearchResult> similaritySearchSingleThread(String text, int topK) throws IOException {
 
         String gPString = tokenizer.textPreprocess.preprocessToText(text);
+
+//        System.out.println("gPString: " + gPString);
 
         Map<String, MultipleFieldMatchInfo> idMatchInfoMap = new HashMap<>();
 
@@ -566,21 +572,33 @@ public class TextSimilaritySearch implements Serializable {
     }
 
     // 列出所有文章，生成器方法
-    public Iterable<FullText> listAll() {
+    public Iterable<ShowText> listAll() {
 
-        return new Iterable<FullText>() {
+
+        return new Iterable<ShowText>() {
+
             @Override
-            public Iterator<FullText> iterator() {
-                return new Iterator<FullText>() {
+            public Iterator<ShowText> iterator() {
+                return new Iterator<ShowText>() {
+
+                    final HashMap<String, FullText> map = idTextMap;
+
+                    final Iterator<String> iterator = map.keySet().iterator();
 
                     @Override
                     public boolean hasNext() {
-                        return false;
+
+                        return iterator.hasNext();
                     }
 
                     @Override
-                    public FullText next() {
-                        return null;
+                    public ShowText next() {
+                        try {
+                            return queryById(iterator.next());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            throw new RuntimeException(e);
+                        }
                     }
                 };
             }
@@ -596,6 +614,10 @@ public class TextSimilaritySearch implements Serializable {
         showText.content = readUnitTextFromDisk(id, TextType.CONTENT).get("srcText").toString();
         showText.title = readUnitTextFromDisk(id, TextType.TITLE).get("srcText").toString();
         return showText;
+    }
+
+    public boolean containsText(String id) {
+        return idTextMap.containsKey(id);
     }
 
     public double avgFullTextLength() {

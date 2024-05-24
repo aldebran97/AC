@@ -2,6 +2,7 @@ package com.aldebran.text;
 
 import com.aldebran.text.similarity.SimilaritySearchResult;
 import com.aldebran.text.similarity.TextSimilaritySearch;
+import com.aldebran.text.text.ShowText;
 import com.aldebran.text.tokenizer.NGramTokenizer;
 
 import java.io.File;
@@ -58,6 +59,8 @@ public class SimilaritySearchTest {
 
         System.out.println(textSimilaritySearch.queryById("1"));
 
+        System.out.println(textSimilaritySearch.containsText("1"));
+
         textSimilaritySearch.update();
 
         for (SimilaritySearchResult result : textSimilaritySearch.similaritySearch(
@@ -65,6 +68,8 @@ public class SimilaritySearchTest {
                         "辛弃疾的《水调歌头》在此之后。", 10)) {
             System.out.printf("title: %s, score: %s, text: %s, id: %s%n", result.title, result.score, result.content, result.id);
         }
+
+        System.out.println("-----------------------------------------------------------------------------------------");
 
         TextSimilaritySearch.save(textSimilaritySearch, textSimilaritySearch.libFolder, true);
 
@@ -78,7 +83,11 @@ public class SimilaritySearchTest {
             System.out.printf("title: %s, score: %s, text: %s, id: %s%n", result.title, result.score, result.content, result.id);
         }
 
+        System.out.println("-----------------------------------------------------------------------------------------");
 
+        for (ShowText showText : textSimilaritySearch2.listAll()) {
+            System.out.println(showText);
+        }
     }
 
 }
