@@ -1,6 +1,7 @@
 package com.aldebran.text.util;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -44,7 +45,7 @@ public class FileUtils {
     }
 
 
-    public static Map<String, Object> readJSONObject(File file) throws IOException {
+    public static JSONObject readJSONObject(File file) throws IOException {
         return JSON.parseObject(readFileString(file));
     }
 
