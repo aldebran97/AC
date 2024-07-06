@@ -443,7 +443,7 @@ public class TextSimilaritySearch implements Serializable {
             CheckUtil.legalDouble(fullText.titleText.avgIdf);
 
             double score = bm25FinalScoreCalculator.calc(textMatchInfo.titleMatchInfo.idfs, textMatchInfo.titleMatchInfo.tfs,
-                    textMatchInfo.contentMatchInfo.idfs, textMatchInfo.contentMatchInfo.tfs);
+                    textMatchInfo.contentMatchInfo.idfs, textMatchInfo.contentMatchInfo.tfs, fullText.articleWeight);
 
 
             SimilaritySearchResult similaritySearchResult = new SimilaritySearchResult();

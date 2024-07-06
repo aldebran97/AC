@@ -44,10 +44,10 @@ public class BM25FinalScoreCalculator implements Serializable {
         return 1.0 / (a * sum + b) + 1;
     }
 
-    public double calc(double[] titleIdfs, double[] titleTfs, double[] contentIdfs, double[] contentTfs) {
+    public double calc(double[] titleIdfs, double[] titleTfs, double[] contentIdfs, double[] contentTfs, double articleWeight) {
         return score((contentFieldScoreCalculator.calc(contentIdfs, contentTfs)
                 + titleFieldScoreCalculator.calc(titleIdfs, titleTfs) * contentTitleItemScoreRate)
-                / (contentFieldScoreCalculator.k + titleFieldScoreCalculator.k));
+                / (contentFieldScoreCalculator.k + titleFieldScoreCalculator.k) * articleWeight);
     }
 
     public void tryAssert() {
